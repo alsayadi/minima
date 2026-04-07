@@ -273,7 +273,7 @@ private fun QuickSuggestions(
         Icons.Outlined.SelfImprovement
     )
 
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(
             text = "Your day is clear.",
             fontSize = 20.sp,
@@ -292,25 +292,25 @@ private fun QuickSuggestions(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(16.dp))
+                    .clip(RoundedCornerShape(12.dp))
                     .background(MinimaColors.surfaceContainerHigh.copy(alpha = 0.40f))
                     .clickable { onSuggestionClick(suggestion) }
-                    .padding(horizontal = 20.dp, vertical = 16.dp),
+                    .padding(horizontal = 14.dp, vertical = 10.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column {
                     Text(
                         text = categories.getOrElse(index) { "SUGGESTION" },
-                        fontSize = 10.sp,
+                        fontSize = 9.sp,
                         fontWeight = FontWeight.Medium,
                         color = MinimaColors.primary.copy(alpha = 0.60f),
-                        letterSpacing = 1.5.sp
+                        letterSpacing = 1.2.sp
                     )
-                    Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.height(2.dp))
                     Text(
                         text = "\"$suggestion\"",
-                        fontSize = 15.sp,
+                        fontSize = 13.sp,
                         fontWeight = FontWeight.Light,
                         fontStyle = FontStyle.Italic,
                         color = MinimaColors.onSurface
@@ -320,7 +320,7 @@ private fun QuickSuggestions(
                     icons.getOrElse(index) { Icons.Outlined.AutoAwesome },
                     contentDescription = null,
                     tint = MinimaColors.outline,
-                    modifier = Modifier.size(20.dp)
+                    modifier = Modifier.size(16.dp)
                 )
             }
         }

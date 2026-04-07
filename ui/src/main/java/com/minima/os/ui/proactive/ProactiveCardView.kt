@@ -62,8 +62,8 @@ fun ProactiveCardView(
         )
 
         Column(
-            modifier = Modifier.padding(24.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
             // Header: pulse dot + "Live Insight" + dismiss
             Row(
@@ -75,19 +75,18 @@ fun ProactiveCardView(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    // Pulse dot
                     Box(
                         modifier = Modifier
-                            .size(8.dp)
+                            .size(6.dp)
                             .clip(CircleShape)
                             .background(MinimaColors.primary)
                     )
                     Text(
                         text = "LIVE INSIGHT",
-                        fontSize = 10.sp,
+                        fontSize = 9.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = MinimaColors.primary.copy(alpha = 0.80f),
-                        letterSpacing = 1.5.sp
+                        letterSpacing = 1.2.sp
                     )
                 }
 
@@ -102,50 +101,42 @@ fun ProactiveCardView(
                 }
             }
 
-            // Title — large, light
             Text(
                 text = card.title,
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Light,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.Normal,
                 color = MinimaColors.onSurface,
-                lineHeight = 26.sp
+                lineHeight = 19.sp
             )
 
-            // Body
             Text(
                 text = card.body,
-                fontSize = 14.sp,
+                fontSize = 12.sp,
                 fontWeight = FontWeight.Normal,
                 color = MinimaColors.onSurface.copy(alpha = 0.70f),
-                lineHeight = 20.sp,
-                maxLines = 3,
+                lineHeight = 16.sp,
+                maxLines = 2,
                 overflow = TextOverflow.Ellipsis
             )
 
-            // Footer: memory count badge + tap to act
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(top = 4.dp)
-            ) {
-                if (card.action != null) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        Text(
-                            text = "Tap to act",
-                            fontSize = 13.sp,
-                            color = MinimaColors.primary,
-                            fontWeight = FontWeight.Normal
-                        )
-                        Icon(
-                            Icons.Outlined.ArrowForward,
-                            null,
-                            tint = MinimaColors.primary,
-                            modifier = Modifier.size(14.dp)
-                        )
-                    }
+            if (card.action != null) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(3.dp),
+                    modifier = Modifier.padding(top = 2.dp)
+                ) {
+                    Text(
+                        text = "Tap to act",
+                        fontSize = 11.sp,
+                        color = MinimaColors.primary,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Icon(
+                        Icons.Outlined.ArrowForward,
+                        null,
+                        tint = MinimaColors.primary,
+                        modifier = Modifier.size(12.dp)
+                    )
                 }
             }
         }
@@ -161,7 +152,7 @@ fun ProactiveCardList(
 ) {
     Column(
         modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         cards.forEach { card ->
             var visible by remember { mutableStateOf(true) }
