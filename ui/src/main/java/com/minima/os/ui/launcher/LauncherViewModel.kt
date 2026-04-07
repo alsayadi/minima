@@ -32,7 +32,9 @@ data class LauncherUiState(
     val currentTask: Task? = null,
     val taskHistory: List<Task> = emptyList(),
     val pendingApproval: ApprovalRequest? = null,
-    val installedApps: List<AppInfo> = emptyList()
+    val installedApps: List<AppInfo> = emptyList(),
+    val isListening: Boolean = false,
+    val voiceStatus: String = ""
 )
 
 @HiltViewModel
@@ -120,6 +122,47 @@ class LauncherViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(commandText = text)
     }
 
+    // Voice input support
+    private var voiceManager: com.minima.os.ui.voice.VoiceManager? = null
+    private var speakNextResult = false
+
+    private fun ensureVoiceManager(): com.minima.os.ui.voice.VoiceManager {
+        return voiceManager ?: com.minima.os.ui.voice.VoiceManager(context).also {
+            voiceManager = it
+            it.ensureInit()
+        }
+    }
+
+    fun startVoiceInput() {
+        val vm = ensureVoiceManager()
+        vm.startListening(object : com.minima.os.ui.voice.VoiceManager.Listener {
+            override fun onListeningStart() {
+                _uiState.value = _uiState.value.copy(isListening = true, voiceStatus = "Listening…")
+            }
+            override fun onPartialText(text: String) {
+                _uiState.value = _uiState.value.copy(commandText = text, voiceStatus = "Listening…")
+            }
+            override fun onFinalText(text: String) {
+                _uiState.value = _uiState.value.copy(
+                    commandText = text, isListening = false, voiceStatus = ""
+                )
+                speakNextResult = true
+                onSubmitCommand()
+            }
+            override fun onError(message: String) {
+                _uiState.value = _uiState.value.copy(isListening = false, voiceStatus = message)
+            }
+            override fun onListeningEnd() {
+                _uiState.value = _uiState.value.copy(isListening = false)
+            }
+        })
+    }
+
+    fun stopVoiceInput() {
+        voiceManager?.stopListening()
+        _uiState.value = _uiState.value.copy(isListening = false, voiceStatus = "")
+    }
+
     fun onSubmitCommand() {
         val text = _uiState.value.commandText.trim()
         if (text.isBlank()) return
@@ -148,9 +191,24 @@ class LauncherViewModel @Inject constructor(
 
         viewModelScope.launch {
             taskExecutor.execute(text)
+            // Speak result if voice-initiated
+            if (speakNextResult) {
+                speakNextResult = false
+                val latest = taskExecutor.taskHistory.value.firstOrNull()
+                val answer = latest?.steps?.lastOrNull()?.result?.data?.get("answer")
+                    ?: latest?.steps?.lastOrNull()?.result?.data?.get("app")?.let { "Opening $it" }
+                    ?: "Done"
+                voiceManager?.speak(answer)
+            }
             refreshContext()
             refreshProactiveCards()
         }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        voiceManager?.shutdown()
+        voiceManager = null
     }
 
     fun onApprove() {

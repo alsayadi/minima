@@ -36,6 +36,8 @@ fun CommandBar(
     onSubmit: () -> Unit,
     isProcessing: Boolean,
     onAppsClick: () -> Unit,
+    onVoiceClick: () -> Unit = {},
+    isListening: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     Row(
@@ -102,16 +104,19 @@ fun CommandBar(
 
         // Right: Mic button (accent bg)
         IconButton(
-            onClick = { /* voice input future */ },
+            onClick = onVoiceClick,
             modifier = Modifier
                 .size(44.dp)
                 .clip(CircleShape)
-                .background(MinimaColors.primary.copy(alpha = 0.20f))
+                .background(
+                    if (isListening) MinimaColors.primary.copy(alpha = 0.55f)
+                    else MinimaColors.primary.copy(alpha = 0.20f)
+                )
         ) {
             Icon(
                 Icons.Default.Mic,
                 contentDescription = "Voice",
-                tint = MinimaColors.primary,
+                tint = if (isListening) Color.White else MinimaColors.primary,
                 modifier = Modifier.size(20.dp)
             )
         }

@@ -50,6 +50,13 @@ fun LauncherScreen(
     var showSettings by remember { mutableStateOf(false) }
     var showMemory by remember { mutableStateOf(false) }
 
+    val micCtx = androidx.compose.ui.platform.LocalContext.current
+    val micPermissionLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+        contract = androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) viewModel.startVoiceInput()
+    }
+
     // Memory data
     val memories by viewModel.memories.collectAsState(initial = emptyList())
     val people by viewModel.people.collectAsState(initial = emptyList())
@@ -172,8 +179,29 @@ fun LauncherScreen(
                 onSubmit = viewModel::onSubmitCommand,
                 isProcessing = uiState.isProcessing,
                 onAppsClick = { showAppDrawer = true },
+                onVoiceClick = {
+                    val ctx = micCtx
+                    val granted = androidx.core.content.ContextCompat.checkSelfPermission(
+                        ctx, android.Manifest.permission.RECORD_AUDIO
+                    ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+                    if (granted) {
+                        if (uiState.isListening) viewModel.stopVoiceInput()
+                        else viewModel.startVoiceInput()
+                    } else {
+                        micPermissionLauncher.launch(android.Manifest.permission.RECORD_AUDIO)
+                    }
+                },
+                isListening = uiState.isListening,
                 modifier = Modifier.fillMaxWidth()
             )
+            if (uiState.voiceStatus.isNotBlank()) {
+                Text(
+                    text = uiState.voiceStatus,
+                    fontSize = 11.sp,
+                    color = MinimaColors.primary.copy(alpha = 0.70f),
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+            }
 
             // Swipe-up hint
             Box(
