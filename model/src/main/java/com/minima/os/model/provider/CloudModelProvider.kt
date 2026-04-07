@@ -17,10 +17,26 @@ import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
 
+enum class Provider(
+    val displayName: String,
+    val baseUrl: String,
+    val defaultModel: String,
+    val format: Format
+) {
+    OPENAI("OpenAI", "https://api.openai.com/v1/chat/completions", "gpt-4o", Format.OPENAI),
+    GROQ("Groq (free)", "https://api.groq.com/openai/v1/chat/completions", "llama-3.3-70b-versatile", Format.OPENAI),
+    DEEPSEEK("DeepSeek", "https://api.deepseek.com/v1/chat/completions", "deepseek-chat", Format.OPENAI),
+    OPENROUTER("OpenRouter", "https://openrouter.ai/api/v1/chat/completions", "openai/gpt-4o-mini", Format.OPENAI),
+    ANTHROPIC("Anthropic Claude", "https://api.anthropic.com/v1/messages", "claude-3-5-sonnet-20241022", Format.ANTHROPIC),
+    GEMINI("Google Gemini", "https://generativelanguage.googleapis.com/v1beta/models", "gemini-2.0-flash", Format.GEMINI);
+
+    enum class Format { OPENAI, ANTHROPIC, GEMINI }
+}
+
 @Singleton
 class CloudModelProvider @Inject constructor() : ModelProvider {
 
-    override val name = "openai-gpt4.5"
+    override val name get() = "${provider.displayName}/$model"
     override val isLocal = false
 
     private val client = OkHttpClient.Builder()
@@ -32,14 +48,26 @@ class CloudModelProvider @Inject constructor() : ModelProvider {
     private val mediaType = "application/json".toMediaType()
 
     private var apiKey: String? = null
-    private var baseUrl: String = "https://api.openai.com/v1/chat/completions"
-    private var model: String = "gpt-4o"
+    private var provider: Provider = Provider.OPENAI
+    private var baseUrl: String = Provider.OPENAI.baseUrl
+    private var model: String = Provider.OPENAI.defaultModel
 
     fun configure(apiKey: String, baseUrl: String? = null, model: String? = null) {
         this.apiKey = apiKey
         baseUrl?.let { this.baseUrl = it }
         model?.let { this.model = it }
     }
+
+    /** Select provider preset. Model defaults to provider's default unless overridden. */
+    fun configureProvider(provider: Provider, apiKey: String, model: String? = null) {
+        this.provider = provider
+        this.apiKey = apiKey
+        this.baseUrl = provider.baseUrl
+        this.model = model?.takeIf { it.isNotBlank() } ?: provider.defaultModel
+    }
+
+    fun currentProvider(): Provider = provider
+    fun currentModel(): String = model
 
     override suspend fun classify(input: String): ClassifiedIntent {
         // Separate memory context from user request if present
@@ -149,46 +177,60 @@ Examples:
 
     private suspend fun chatComplete(systemPrompt: String, userMessage: String): String =
         withContext(Dispatchers.IO) {
-            val key = apiKey ?: throw IllegalStateException("OpenAI API key not configured")
-            android.util.Log.d("CloudModelProvider", "Calling $model with key=${key.take(10)}...")
+            val key = apiKey ?: throw IllegalStateException("${provider.displayName} API key not configured")
+            android.util.Log.d("CloudModelProvider", "Calling ${provider.name}/$model")
 
-            val escapedSystem = systemPrompt.replace("\"", "\\\"").replace("\n", "\\n")
-            val escapedUser = userMessage.replace("\"", "\\\"").replace("\n", "\\n")
+            val escapedSystem = systemPrompt.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n")
+            val escapedUser = userMessage.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n")
 
-            val body = """
-            {
-                "model": "$model",
-                "messages": [
-                    {"role": "system", "content": "$escapedSystem"},
-                    {"role": "user", "content": "$escapedUser"}
-                ],
-                "max_tokens": 1024,
-                "temperature": 0.3
+            val (url, body, headers) = when (provider.format) {
+                Provider.Format.OPENAI -> {
+                    val b = """{"model":"$model","messages":[{"role":"system","content":"$escapedSystem"},{"role":"user","content":"$escapedUser"}],"max_tokens":1024,"temperature":0.3}"""
+                    Triple(baseUrl, b, mapOf("Authorization" to "Bearer $key", "Content-Type" to "application/json"))
+                }
+                Provider.Format.ANTHROPIC -> {
+                    val b = """{"model":"$model","max_tokens":1024,"system":"$escapedSystem","messages":[{"role":"user","content":"$escapedUser"}]}"""
+                    Triple(baseUrl, b, mapOf(
+                        "x-api-key" to key,
+                        "anthropic-version" to "2023-06-01",
+                        "Content-Type" to "application/json"
+                    ))
+                }
+                Provider.Format.GEMINI -> {
+                    val u = "$baseUrl/$model:generateContent?key=$key"
+                    val b = """{"system_instruction":{"parts":[{"text":"$escapedSystem"}]},"contents":[{"parts":[{"text":"$escapedUser"}]}],"generationConfig":{"temperature":0.3,"maxOutputTokens":1024}}"""
+                    Triple(u, b, mapOf("Content-Type" to "application/json"))
+                }
             }
-            """.trimIndent()
 
-            val request = Request.Builder()
-                .url(baseUrl)
-                .addHeader("Authorization", "Bearer $key")
-                .addHeader("Content-Type", "application/json")
-                .post(body.toRequestBody(mediaType))
-                .build()
-
-            val response = client.newCall(request).execute()
+            val reqBuilder = Request.Builder().url(url).post(body.toRequestBody(mediaType))
+            headers.forEach { (k, v) -> reqBuilder.addHeader(k, v) }
+            val response = client.newCall(reqBuilder.build()).execute()
             val responseBody = response.body?.string() ?: throw Exception("Empty response")
 
             if (!response.isSuccessful) {
-                throw Exception("OpenAI API error ${response.code}: $responseBody")
+                throw Exception("${provider.displayName} API error ${response.code}: $responseBody")
             }
 
-            // Parse OpenAI response: { "choices": [{ "message": { "content": "..." } }] }
             val parsed = json.parseToJsonElement(responseBody).jsonObject
-            val choices = parsed["choices"]?.jsonArray
-                ?: throw Exception("No choices in response")
-            val firstChoice = choices[0].jsonObject
-            val message = firstChoice["message"]?.jsonObject
-                ?: throw Exception("No message in choice")
-            message["content"]?.jsonPrimitive?.content
-                ?: throw Exception("No content in message")
+            when (provider.format) {
+                Provider.Format.OPENAI -> {
+                    val choices = parsed["choices"]?.jsonArray ?: throw Exception("No choices")
+                    choices[0].jsonObject["message"]?.jsonObject?.get("content")?.jsonPrimitive?.content
+                        ?: throw Exception("No content")
+                }
+                Provider.Format.ANTHROPIC -> {
+                    val content = parsed["content"]?.jsonArray ?: throw Exception("No content array")
+                    content[0].jsonObject["text"]?.jsonPrimitive?.content
+                        ?: throw Exception("No text")
+                }
+                Provider.Format.GEMINI -> {
+                    val candidates = parsed["candidates"]?.jsonArray ?: throw Exception("No candidates")
+                    val content = candidates[0].jsonObject["content"]?.jsonObject ?: throw Exception("No content")
+                    val parts = content["parts"]?.jsonArray ?: throw Exception("No parts")
+                    parts[0].jsonObject["text"]?.jsonPrimitive?.content
+                        ?: throw Exception("No text")
+                }
+            }
         }
 }

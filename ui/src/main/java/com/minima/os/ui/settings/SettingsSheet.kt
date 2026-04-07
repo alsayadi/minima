@@ -23,6 +23,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.minima.os.model.provider.Provider
 
 @Composable
 fun SettingsSheet(
@@ -33,7 +34,22 @@ fun SettingsSheet(
 ) {
     val context = LocalContext.current
     val prefs = context.getSharedPreferences("minima_prefs", Context.MODE_PRIVATE)
-    var apiKey by remember { mutableStateOf(prefs.getString("openai_api_key", "") ?: "") }
+    var selectedProvider by remember {
+        mutableStateOf(
+            try { Provider.valueOf(prefs.getString("llm_provider", Provider.OPENAI.name) ?: Provider.OPENAI.name) }
+            catch (_: Exception) { Provider.OPENAI }
+        )
+    }
+    var apiKey by remember(selectedProvider) {
+        mutableStateOf(
+            prefs.getString("api_key_${selectedProvider.name}", null)
+                ?: (if (selectedProvider == Provider.OPENAI) prefs.getString("openai_api_key", "") else "")
+                ?: ""
+        )
+    }
+    var customModel by remember(selectedProvider) {
+        mutableStateOf(prefs.getString("llm_model_${selectedProvider.name}", "") ?: "")
+    }
     var sensitivity by remember { mutableStateOf(prefs.getString("sensitivity", "NORMAL") ?: "NORMAL") }
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -93,25 +109,55 @@ fun SettingsSheet(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // AI Model section
+            // AI Provider selector
             Text(
-                text = "AI Model",
+                text = "AI Provider",
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Medium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = "OpenAI GPT-4.5",
-                fontSize = 12.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-            )
+            Spacer(modifier = Modifier.height(8.dp))
 
-            Spacer(modifier = Modifier.height(16.dp))
+            // Grid of provider chips (2 per row)
+            val providers = Provider.values().toList()
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                providers.chunked(2).forEach { row ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        row.forEach { p ->
+                            val isSel = p == selectedProvider
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(
+                                        if (isSel) Color(0xFF7C6FED).copy(alpha = 0.22f)
+                                        else MaterialTheme.colorScheme.surfaceVariant
+                                    )
+                                    .clickable { selectedProvider = p }
+                                    .padding(vertical = 10.dp, horizontal = 10.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    p.displayName,
+                                    fontSize = 12.sp,
+                                    fontWeight = if (isSel) FontWeight.SemiBold else FontWeight.Normal,
+                                    color = if (isSel) Color(0xFF7C6FED) else MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                        if (row.size == 1) Spacer(modifier = Modifier.weight(1f))
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
 
             // API Key input
             Text(
-                text = "OpenAI API Key",
+                text = "${selectedProvider.displayName} API Key",
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Medium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -145,10 +191,46 @@ fun SettingsSheet(
                 )
             }
 
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // Optional custom model
+            Text(
+                text = "Model (optional)",
+                fontSize = 12.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                    .padding(horizontal = 16.dp, vertical = 12.dp)
+            ) {
+                if (customModel.isEmpty()) {
+                    Text(
+                        text = selectedProvider.defaultModel,
+                        fontSize = 13.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                    )
+                }
+                BasicTextField(
+                    value = customModel,
+                    onValueChange = { customModel = it },
+                    textStyle = TextStyle(
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontSize = 13.sp
+                    ),
+                    cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                text = "Required for AI-powered intent classification. Without it, only basic keyword matching is used.",
+                text = "Default: ${selectedProvider.defaultModel}. Without an API key, only basic keyword matching is used.",
                 fontSize = 11.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                 lineHeight = 15.sp
@@ -211,12 +293,20 @@ fun SettingsSheet(
             Button(
                 onClick = {
                     prefs.edit()
-                        .putString("openai_api_key", apiKey.trim())
+                        .putString("llm_provider", selectedProvider.name)
+                        .putString("api_key_${selectedProvider.name}", apiKey.trim())
+                        .putString("llm_model_${selectedProvider.name}", customModel.trim())
                         .putString("sensitivity", sensitivity)
+                        // legacy key for backward compat
+                        .apply {
+                            if (selectedProvider == Provider.OPENAI) {
+                                putString("openai_api_key", apiKey.trim())
+                            }
+                        }
                         .apply()
                     onApiKeySaved(apiKey.trim())
                     onSensitivityChanged?.invoke(sensitivity)
-                    Toast.makeText(context, "Settings saved", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, "Settings saved — restart app to apply", Toast.LENGTH_LONG).show()
                     onDismiss()
                 },
                 modifier = Modifier

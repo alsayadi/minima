@@ -325,7 +325,14 @@ Respond in ONE short warm sentence as if speaking to a friend. No markdown, no l
 
     fun onApiKeySaved(apiKey: String) {
         if (apiKey.isNotBlank()) {
-            cloudModelProvider.configure(apiKey)
+            // Re-read the full provider selection and apply live
+            val prefs = context.getSharedPreferences("minima_prefs", Context.MODE_PRIVATE)
+            val providerName = prefs.getString("llm_provider", com.minima.os.model.provider.Provider.OPENAI.name)
+                ?: com.minima.os.model.provider.Provider.OPENAI.name
+            val selected = try { com.minima.os.model.provider.Provider.valueOf(providerName) }
+                           catch (_: Exception) { com.minima.os.model.provider.Provider.OPENAI }
+            val model = prefs.getString("llm_model_${selected.name}", null)
+            cloudModelProvider.configureProvider(selected, apiKey, model)
         }
     }
 
