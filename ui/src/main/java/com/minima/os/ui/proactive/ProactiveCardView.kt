@@ -9,6 +9,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -39,10 +41,10 @@ fun ProactiveCardView(
 ) {
     Box(
         modifier = modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
+            .width(220.dp)
+            .clip(RoundedCornerShape(14.dp))
             .background(MinimaColors.glass)
-            .border(1.dp, Color.White.copy(alpha = 0.05f), RoundedCornerShape(16.dp))
+            .border(1.dp, Color.White.copy(alpha = 0.05f), RoundedCornerShape(14.dp))
             .then(if (card.action != null) Modifier.clickable { card.action?.let { onTap?.invoke(it) } } else Modifier)
     ) {
         // Ambient glow in top-right corner
@@ -62,8 +64,8 @@ fun ProactiveCardView(
         )
 
         Column(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp)
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             // Header: pulse dot + "Live Insight" + dismiss
             Row(
@@ -103,18 +105,20 @@ fun ProactiveCardView(
 
             Text(
                 text = card.title,
-                fontSize = 15.sp,
-                fontWeight = FontWeight.Normal,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Medium,
                 color = MinimaColors.onSurface,
-                lineHeight = 19.sp
+                lineHeight = 16.sp,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
 
             Text(
                 text = card.body,
-                fontSize = 12.sp,
+                fontSize = 11.sp,
                 fontWeight = FontWeight.Normal,
                 color = MinimaColors.onSurface.copy(alpha = 0.70f),
-                lineHeight = 16.sp,
+                lineHeight = 14.sp,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis
             )
@@ -150,23 +154,17 @@ fun ProactiveCardList(
     onDismiss: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Column(
+    LazyRow(
         modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        contentPadding = PaddingValues(horizontal = 0.dp)
     ) {
-        cards.forEach { card ->
-            var visible by remember { mutableStateOf(true) }
-            AnimatedVisibility(
-                visible = visible,
-                enter = slideInVertically() + fadeIn(),
-                exit = slideOutVertically() + fadeOut()
-            ) {
-                ProactiveCardView(
-                    card = card,
-                    onTap = onCardTap,
-                    onDismiss = { visible = false; onDismiss(card.id) }
-                )
-            }
+        items(cards, key = { it.id }) { card ->
+            ProactiveCardView(
+                card = card,
+                onTap = onCardTap,
+                onDismiss = { onDismiss(card.id) }
+            )
         }
     }
 }
