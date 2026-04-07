@@ -65,7 +65,7 @@ fun ContextSurface(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(top = 60.dp)
+            .padding(top = 20.dp)
     ) {
         // Greeting pill — sits above clock
         Box(
@@ -73,30 +73,30 @@ fun ContextSurface(
                 .clip(RoundedCornerShape(50))
                 .background(MinimaColors.primary.copy(alpha = 0.10f))
                 .border(1.dp, MinimaColors.primary.copy(alpha = 0.10f), RoundedCornerShape(50))
-                .padding(horizontal = 16.dp, vertical = 6.dp)
+                .padding(horizontal = 12.dp, vertical = 4.dp)
         ) {
             Text(
                 text = greeting,
-                fontSize = 12.sp,
+                fontSize = 11.sp,
                 fontWeight = FontWeight.Medium,
                 color = MinimaColors.primary,
-                letterSpacing = 0.5.sp
+                letterSpacing = 0.4.sp
             )
         }
 
-        Spacer(modifier = Modifier.height(20.dp))
+        Spacer(modifier = Modifier.height(10.dp))
 
-        // Big clock — Thin weight, ethereal
+        // Clock — smaller
         Text(
             text = timeStr,
-            fontSize = 86.sp,
+            fontSize = 64.sp,
             fontWeight = FontWeight.Thin,
             color = MinimaColors.onSurface.copy(alpha = 0.90f),
-            lineHeight = 86.sp,
-            letterSpacing = (-3).sp
+            lineHeight = 64.sp,
+            letterSpacing = (-2).sp
         )
 
-        Spacer(modifier = Modifier.height(4.dp))
+        Spacer(modifier = Modifier.height(2.dp))
 
         // Date row with dot separator
         Row(
@@ -105,27 +105,27 @@ fun ContextSurface(
         ) {
             Text(
                 text = dateStr,
-                fontSize = 16.sp,
+                fontSize = 13.sp,
                 fontWeight = FontWeight.Light,
                 color = MinimaColors.onSurfaceVariant
             )
             if (!temperature.isNullOrBlank()) {
                 Text(
                     text = " · ",
-                    fontSize = 16.sp,
+                    fontSize = 13.sp,
                     fontWeight = FontWeight.Light,
                     color = MinimaColors.onSurfaceVariant.copy(alpha = 0.5f)
                 )
                 Text(
                     text = temperature,
-                    fontSize = 16.sp,
+                    fontSize = 13.sp,
                     fontWeight = FontWeight.Light,
                     color = MinimaColors.onSurfaceVariant
                 )
             }
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(14.dp))
 
         // Insight chips — horizontal scroll
         val cards = contextData?.insightCards ?: emptyList()
