@@ -155,6 +155,15 @@ class LauncherViewModel @Inject constructor(
             }
             override fun onError(message: String) {
                 _uiState.value = _uiState.value.copy(isListening = false, voiceStatus = message)
+                // Auto-retry on "no match" / no speech so the user can try again hands-free
+                val retry = message.contains("catch that", ignoreCase = true) ||
+                            message.contains("No speech", ignoreCase = true)
+                if (retry) {
+                    viewModelScope.launch {
+                        kotlinx.coroutines.delay(400)
+                        startVoiceInput()
+                    }
+                }
             }
             override fun onListeningEnd() {
                 _uiState.value = _uiState.value.copy(isListening = false)
