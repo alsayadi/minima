@@ -39,6 +39,8 @@ fun ContextSurface(
     contextData: ContextEngine.ContextData?,
     notificationCount: Int,
     onInsightTap: ((String) -> Unit)? = null,
+    userName: String? = null,
+    temperature: String? = null,
     modifier: Modifier = Modifier
 ) {
     var tick by remember { mutableLongStateOf(System.currentTimeMillis()) }
@@ -52,9 +54,12 @@ fun ContextSurface(
     val timeStr = remember(tick) { SimpleDateFormat("h:mm", Locale.getDefault()).format(Date()) }
     val dateStr = remember(tick) { SimpleDateFormat("EEEE, MMM d", Locale.getDefault()).format(Date()) }
 
-    val greeting = contextData?.greeting ?: when {
-        hour < 5 -> "Good night"; hour < 12 -> "Good morning"
-        hour < 17 -> "Good afternoon"; else -> "Good evening"
+    val greeting = contextData?.greeting ?: run {
+        val base = when {
+            hour < 5 -> "Good night"; hour < 12 -> "Good morning"
+            hour < 17 -> "Good afternoon"; else -> "Good evening"
+        }
+        if (!userName.isNullOrBlank()) "$base, $userName" else base
     }
 
     Column(
@@ -104,6 +109,20 @@ fun ContextSurface(
                 fontWeight = FontWeight.Light,
                 color = MinimaColors.onSurfaceVariant
             )
+            if (!temperature.isNullOrBlank()) {
+                Text(
+                    text = " · ",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Light,
+                    color = MinimaColors.onSurfaceVariant.copy(alpha = 0.5f)
+                )
+                Text(
+                    text = temperature,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Light,
+                    color = MinimaColors.onSurfaceVariant
+                )
+            }
         }
 
         Spacer(modifier = Modifier.height(24.dp))

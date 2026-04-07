@@ -18,7 +18,8 @@ class ContextEngine @Inject constructor(
         val greeting: String,
         val insightCards: List<InsightCard>,
         val suggestions: List<String>,
-        val isNewUser: Boolean
+        val isNewUser: Boolean,
+        val temperature: String? = null
     )
 
     data class InsightCard(

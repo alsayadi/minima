@@ -1,5 +1,8 @@
 package com.minima.os.ui.launcher
 
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -13,16 +16,23 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 data class AppInfo(
     val label: String,
@@ -123,19 +133,41 @@ fun AppDrawer(
                         )
                         val color = colors[app.label.hashCode().mod(colors.size).let { if (it < 0) it + colors.size else it }]
 
+                        val context = LocalContext.current
+                        val iconBitmap by produceState<ImageBitmap?>(initialValue = null, app.packageName) {
+                            value = withContext(Dispatchers.IO) {
+                                try {
+                                    val pm = context.packageManager
+                                    val drawable = pm.getApplicationIcon(app.packageName)
+                                    val w = drawable.intrinsicWidth.coerceAtLeast(1)
+                                    val h = drawable.intrinsicHeight.coerceAtLeast(1)
+                                    val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+                                    val canvas = Canvas(bmp)
+                                    drawable.setBounds(0, 0, w, h)
+                                    drawable.draw(canvas)
+                                    bmp.asImageBitmap()
+                                } catch (_: Exception) { null }
+                            }
+                        }
+
                         Box(
                             modifier = Modifier
                                 .size(52.dp)
                                 .clip(RoundedCornerShape(14.dp))
-                                .background(color.copy(alpha = 0.12f)),
+                                .background(if (iconBitmap == null) color.copy(alpha = 0.12f) else Color.Transparent),
                             contentAlignment = Alignment.Center
                         ) {
-                            Text(
-                                text = app.label.take(1).uppercase(),
-                                fontSize = 20.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = color
-                            )
+                            val bmp = iconBitmap
+                            if (bmp != null) {
+                                Image(bitmap = bmp, contentDescription = app.label, modifier = Modifier.size(48.dp))
+                            } else {
+                                Text(
+                                    text = app.label.take(1).uppercase(),
+                                    fontSize = 20.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = color
+                                )
+                            }
                         }
                         Spacer(modifier = Modifier.height(6.dp))
                         Text(

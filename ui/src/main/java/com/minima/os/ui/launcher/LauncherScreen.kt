@@ -13,6 +13,8 @@ import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.*
@@ -80,94 +82,90 @@ fun LauncherScreen(
                 .systemBarsPadding()
                 .padding(horizontal = 20.dp)
         ) {
-            // Context surface v2 — personalized, memory-driven
-            // Long-press for settings, double-tap for memory
-            @OptIn(ExperimentalFoundationApi::class)
-            Box(modifier = Modifier.combinedClickable(
-                onClick = {},
-                onDoubleClick = { showMemory = true; viewModel.refreshMemoryStats() },
-                onLongClick = { showSettings = true }
-            )) {
-                ContextSurface(
-                    contextData = contextData,
-                    notificationCount = 0,
-                    onInsightTap = { command ->
-                        viewModel.onCommandTextChanged(command)
-                        viewModel.onSubmitCommand()
-                    }
-                )
-            }
-
-            // Proactive cards
-            if (proactiveCards.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(8.dp))
-                ProactiveCardList(
-                    cards = proactiveCards,
-                    onCardTap = { command ->
-                        viewModel.onCommandTextChanged(command)
-                        viewModel.onSubmitCommand()
-                    },
-                    onDismiss = { id -> viewModel.dismissProactiveCard(id) }
-                )
-            }
-
-            Spacer(
+            val scrollState = rememberScrollState()
+            Column(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth()
+                    .verticalScroll(scrollState)
                     .pointerInput(Unit) {
                         detectVerticalDragGestures { _, dragAmount ->
-                            if (dragAmount < -40) showAppDrawer = true
+                            if (dragAmount < -60 && scrollState.value == 0) showAppDrawer = true
                         }
                     }
-            )
-
-            // Onboarding for new users, or smart suggestions
-            if (onboardingQuestions.isNotEmpty() && uiState.taskHistory.isEmpty()) {
-                OnboardingFlow(
-                    questions = onboardingQuestions,
-                    onAnswer = { command -> viewModel.onOnboardingAnswer(command) },
-                    onSkip = { viewModel.dismissOnboarding() }
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-            } else if (uiState.taskHistory.isEmpty()) {
-                // Smart suggestions from context engine
-                val suggestions = contextData?.suggestions ?: listOf(
-                    "What's on my calendar?",
-                    "Remind me to call Mom at 5pm",
-                    "Check notifications",
-                    "Tell me a joke"
-                )
-                QuickSuggestions(
-                    suggestions = suggestions,
-                    onSuggestionClick = { suggestion ->
-                        viewModel.onCommandTextChanged(suggestion)
-                        viewModel.onSubmitCommand()
-                    }
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-            }
-
-            // Task feed
-            if (uiState.taskHistory.isNotEmpty()) {
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(max = 280.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                    reverseLayout = true
-                ) {
-                    items(
-                        items = uiState.taskHistory.take(5),
-                        key = { it.id }
-                    ) { task ->
-                        TaskCard(task = task)
-                    }
+            ) {
+                // Context surface v2 — personalized, memory-driven
+                // Long-press for settings, double-tap for memory
+                @OptIn(ExperimentalFoundationApi::class)
+                Box(modifier = Modifier.combinedClickable(
+                    onClick = {},
+                    onDoubleClick = { showMemory = true; viewModel.refreshMemoryStats() },
+                    onLongClick = { showSettings = true }
+                )) {
+                    ContextSurface(
+                        contextData = contextData,
+                        notificationCount = 0,
+                        userName = contextData?.userName,
+                        temperature = contextData?.temperature,
+                        onInsightTap = { command ->
+                            viewModel.onCommandTextChanged(command)
+                            viewModel.onSubmitCommand()
+                        }
+                    )
                 }
-                Spacer(modifier = Modifier.height(12.dp))
+
+                // Proactive cards
+                if (proactiveCards.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    ProactiveCardList(
+                        cards = proactiveCards,
+                        onCardTap = { command ->
+                            viewModel.onCommandTextChanged(command)
+                            viewModel.onSubmitCommand()
+                        },
+                        onDismiss = { id -> viewModel.dismissProactiveCard(id) }
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // Onboarding for new users, or smart suggestions
+                if (onboardingQuestions.isNotEmpty() && uiState.taskHistory.isEmpty()) {
+                    OnboardingFlow(
+                        questions = onboardingQuestions,
+                        onAnswer = { command -> viewModel.onOnboardingAnswer(command) },
+                        onSkip = { viewModel.dismissOnboarding() }
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                } else if (uiState.taskHistory.isEmpty()) {
+                    val suggestions = contextData?.suggestions ?: listOf(
+                        "What's on my calendar?",
+                        "Remind me to call Mom at 5pm",
+                        "Check notifications",
+                        "Tell me a joke"
+                    )
+                    QuickSuggestions(
+                        suggestions = suggestions,
+                        onSuggestionClick = { suggestion ->
+                            viewModel.onCommandTextChanged(suggestion)
+                            viewModel.onSubmitCommand()
+                        }
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
+
+                // Task feed
+                if (uiState.taskHistory.isNotEmpty()) {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        uiState.taskHistory.take(5).forEach { task ->
+                            TaskCard(task = task)
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(12.dp))
+                }
             }
 
-            // Command bar (full width)
+            // Command bar (full width, pinned at bottom)
             CommandBar(
                 text = uiState.commandText,
                 onTextChange = viewModel::onCommandTextChanged,
@@ -277,8 +275,15 @@ private fun QuickSuggestions(
 
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Text(
+            text = "Your day is clear.",
+            fontSize = 20.sp,
+            fontWeight = FontWeight.Normal,
+            color = MinimaColors.onSurface.copy(alpha = 0.92f),
+            modifier = Modifier.padding(bottom = 2.dp)
+        )
+        Text(
             text = "What can I help you discover?",
-            fontSize = 16.sp,
+            fontSize = 14.sp,
             fontWeight = FontWeight.Light,
             color = MinimaColors.onSurfaceVariant,
             modifier = Modifier.padding(bottom = 8.dp)
