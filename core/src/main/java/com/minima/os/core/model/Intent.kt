@@ -28,6 +28,11 @@ enum class IntentType {
     REMEMBER,
     RECALL,
     ANSWER,
+    FLASHLIGHT,
+    OPEN_CAMERA,
+    MUSIC_CONTROL,
+    CREATE_CALENDAR_EVENT,
+    GET_WEATHER,
     UNKNOWN
 }
 

@@ -53,11 +53,17 @@ Classify the user's input into exactly one of these intent types:
 CREATE_EVENT, READ_CALENDAR, SET_REMINDER, SEND_MESSAGE, READ_MESSAGES,
 TRIAGE_NOTIFICATIONS, DISMISS_NOTIFICATION, REPLY_NOTIFICATION,
 ORDER_RIDE, ORDER_FOOD, SEARCH, OPEN_APP, DEVICE_SETTING,
+FLASHLIGHT, OPEN_CAMERA, MUSIC_CONTROL, CREATE_CALENDAR_EVENT, GET_WEATHER,
 REMEMBER, RECALL, ANSWER, UNKNOWN
 
 Rules:
 - Use ANSWER for ANY question, conversation, greeting, joke, math, translation, explanation, or general knowledge request.
-- Use SEARCH only when the user explicitly wants to search the web or needs real-time info (weather, news, stock prices).
+- Use GET_WEATHER for real-time weather queries ("weather", "is it hot", "will it rain", "forecast"). Pass location in params if mentioned.
+- Use FLASHLIGHT for torch/light commands. params.mode = "on" | "off" | "toggle".
+- Use OPEN_CAMERA for "take photo", "camera", "selfie".
+- Use MUSIC_CONTROL for music playback. params.action = "play" | "pause" | "next" | "prev" | "toggle".
+- Use CREATE_CALENDAR_EVENT for "schedule a meeting", "add event to calendar". params.title = event title.
+- Use SEARCH only when the user explicitly wants to search the web for something other than weather.
 - Use REMEMBER when the user states personal facts ("my name is...", "I like...", "I live in...").
 - Use RECALL when the user asks what you know/remember about them.
 - Use OPEN_APP when user wants to open or list apps. If no specific app name, set appName to empty string.
@@ -68,7 +74,13 @@ Respond ONLY with valid JSON, no markdown, no explanation:
 
 Examples:
 - "remind me to buy milk at 5pm" -> {"type": "SET_REMINDER", "confidence": "HIGH", "params": {"description": "buy milk", "time": "5pm"}}
-- "what's the weather" -> {"type": "SEARCH", "confidence": "HIGH", "params": {"query": "what's the weather"}}
+- "what's the weather" -> {"type": "GET_WEATHER", "confidence": "HIGH", "params": {"location": ""}}
+- "weather in London" -> {"type": "GET_WEATHER", "confidence": "HIGH", "params": {"location": "London"}}
+- "turn on the flashlight" -> {"type": "FLASHLIGHT", "confidence": "HIGH", "params": {"mode": "on"}}
+- "take a photo" -> {"type": "OPEN_CAMERA", "confidence": "HIGH", "params": {}}
+- "pause the music" -> {"type": "MUSIC_CONTROL", "confidence": "HIGH", "params": {"action": "pause"}}
+- "next song" -> {"type": "MUSIC_CONTROL", "confidence": "HIGH", "params": {"action": "next"}}
+- "schedule a meeting with John tomorrow" -> {"type": "CREATE_CALENDAR_EVENT", "confidence": "HIGH", "params": {"title": "meeting with John"}}
 - "tell me a joke" -> {"type": "ANSWER", "confidence": "HIGH", "params": {"query": "tell me a joke"}}
 - "what's 2 plus 2" -> {"type": "ANSWER", "confidence": "HIGH", "params": {"query": "what's 2 plus 2"}}
 - "hello" -> {"type": "ANSWER", "confidence": "HIGH", "params": {"query": "hello"}}

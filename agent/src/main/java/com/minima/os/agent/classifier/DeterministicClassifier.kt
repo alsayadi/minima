@@ -171,6 +171,56 @@ class DeterministicClassifier @Inject constructor() : IntentClassifier {
                 mapOf("query" to query), input)
         }
 
+        // Flashlight / torch
+        if (text.matchesAny("flashlight", "torch", "turn on light", "turn off light",
+                "turn on flashlight", "turn off flashlight", "light on", "light off")) {
+            val mode = when {
+                text.contains("off") -> "off"
+                text.contains("on") -> "on"
+                else -> "toggle"
+            }
+            return ClassifiedIntent(IntentType.FLASHLIGHT, Confidence.HIGH,
+                mapOf("mode" to mode), input)
+        }
+
+        // Camera
+        if (text.matchesAny("open camera", "take photo", "take a photo", "take picture",
+                "take a picture", "take selfie", "take a selfie", "camera", "snap photo")) {
+            return ClassifiedIntent(IntentType.OPEN_CAMERA, Confidence.HIGH, emptyMap(), input)
+        }
+
+        // Music control
+        if (text.matchesAny("play music", "pause music", "stop music", "next song", "next track",
+                "previous song", "previous track", "skip song", "skip track", "resume music",
+                "play song", "pause song")) {
+            val action = when {
+                text.contains("pause") || text.contains("stop") -> "pause"
+                text.contains("next") || text.contains("skip") -> "next"
+                text.contains("prev") || text.contains("back") -> "prev"
+                else -> "play"
+            }
+            return ClassifiedIntent(IntentType.MUSIC_CONTROL, Confidence.HIGH,
+                mapOf("action" to action), input)
+        }
+
+        // Weather
+        if (text.matchesAny("weather", "temperature", "is it hot", "is it cold", "will it rain",
+                "is it raining", "forecast", "how hot", "how cold")) {
+            val cityMatch = Regex("(?:in|at|for)\\s+([a-zA-Z\\s]+)").find(text)
+            val city = cityMatch?.groupValues?.get(1)?.trim() ?: ""
+            return ClassifiedIntent(IntentType.GET_WEATHER, Confidence.HIGH,
+                mapOf("location" to city), input)
+        }
+
+        // Create calendar event (direct)
+        if (text.matchesAny("schedule meeting", "book meeting", "add meeting",
+                "calendar event", "new appointment")) {
+            val title = text.removeLeading("schedule meeting", "book meeting", "add meeting",
+                "calendar event", "new appointment", "schedule", "book", "add")
+            return ClassifiedIntent(IntentType.CREATE_CALENDAR_EVENT, Confidence.HIGH,
+                mapOf("title" to title), input)
+        }
+
         // List apps
         if (text.matchesAny("what apps", "list apps", "show apps", "my apps",
                 "installed apps", "which apps", "apps on this phone", "what apps do i have")) {

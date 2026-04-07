@@ -10,6 +10,7 @@ import com.minima.os.capability.registry.CapabilityRegistry
 import com.minima.os.capability.chat.ChatCapability
 import com.minima.os.capability.memory.MemoryCapability
 import com.minima.os.capability.system.SystemCapability
+import com.minima.os.capability.weather.WeatherCapability
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
@@ -41,7 +42,8 @@ object CapabilityProvidesModule {
         commerce: CommerceCapability,
         system: SystemCapability,
         memory: MemoryCapability,
-        chat: ChatCapability
+        chat: ChatCapability,
+        weather: WeatherCapability
     ): Map<String, @JvmSuppressWildcards CapabilityProvider> {
         return mapOf(
             "calendar" to calendar,
@@ -50,7 +52,8 @@ object CapabilityProvidesModule {
             "commerce" to commerce,
             "system" to system,
             "memory" to memory,
-            "chat" to chat
+            "chat" to chat,
+            "weather" to weather
         )
     }
 }

@@ -79,6 +79,26 @@ class DeterministicPlanner @Inject constructor() : Planner {
                 step(taskId, "chat", "answer", intent.params, ApprovalLevel.AUTO)
             )
 
+            IntentType.FLASHLIGHT -> listOf(
+                step(taskId, "system", "flashlight", intent.params, ApprovalLevel.AUTO)
+            )
+
+            IntentType.OPEN_CAMERA -> listOf(
+                step(taskId, "system", "open_camera", intent.params, ApprovalLevel.AUTO)
+            )
+
+            IntentType.MUSIC_CONTROL -> listOf(
+                step(taskId, "system", "music_control", intent.params, ApprovalLevel.AUTO)
+            )
+
+            IntentType.CREATE_CALENDAR_EVENT -> listOf(
+                step(taskId, "calendar", "create_event", intent.params, ApprovalLevel.AUTO)
+            )
+
+            IntentType.GET_WEATHER -> listOf(
+                step(taskId, "weather", "get_weather", intent.params, ApprovalLevel.AUTO)
+            )
+
             IntentType.UNKNOWN -> emptyList()
         }
     }

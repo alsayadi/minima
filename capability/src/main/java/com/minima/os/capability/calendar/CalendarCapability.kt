@@ -2,6 +2,7 @@ package com.minima.os.capability.calendar
 
 import android.content.ContentValues
 import android.content.Context
+import android.content.Intent
 import android.provider.CalendarContract
 import com.minima.os.capability.registry.CapabilityProvider
 import com.minima.os.core.model.ActionStep
@@ -32,31 +33,27 @@ class CalendarCapability @Inject constructor(
 
     private fun createEvent(params: Map<String, String>): StepResult {
         return try {
-            val description = params["description"] ?: return StepResult(
-                success = false, error = "No event description provided"
+            val title = params["title"] ?: params["description"] ?: return StepResult(
+                success = false, error = "No event title provided"
             )
+            val hoursFromNow = params["hours"]?.toIntOrNull() ?: 1
+            val durationMin = params["duration"]?.toIntOrNull() ?: 60
 
-            val startTime = Calendar.getInstance().apply {
-                add(Calendar.HOUR_OF_DAY, 1) // Default: 1 hour from now
+            val start = Calendar.getInstance().apply { add(Calendar.HOUR_OF_DAY, hoursFromNow) }
+            val end = (start.clone() as Calendar).apply { add(Calendar.MINUTE, durationMin) }
+
+            val intent = Intent(Intent.ACTION_INSERT).apply {
+                data = CalendarContract.Events.CONTENT_URI
+                putExtra(CalendarContract.Events.TITLE, title)
+                putExtra(CalendarContract.EXTRA_EVENT_BEGIN_TIME, start.timeInMillis)
+                putExtra(CalendarContract.EXTRA_EVENT_END_TIME, end.timeInMillis)
+                params["location"]?.let { putExtra(CalendarContract.Events.EVENT_LOCATION, it) }
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
-
-            val values = ContentValues().apply {
-                put(CalendarContract.Events.DTSTART, startTime.timeInMillis)
-                put(CalendarContract.Events.DTEND, startTime.timeInMillis + 3600000) // 1hr
-                put(CalendarContract.Events.TITLE, description)
-                put(CalendarContract.Events.CALENDAR_ID, 1)
-                put(CalendarContract.Events.EVENT_TIMEZONE, TimeZone.getDefault().id)
-            }
-
-            val uri = context.contentResolver.insert(CalendarContract.Events.CONTENT_URI, values)
-
-            if (uri != null) {
-                StepResult(success = true, data = mapOf("eventUri" to uri.toString()))
-            } else {
-                StepResult(success = false, error = "Failed to create event")
-            }
-        } catch (e: SecurityException) {
-            StepResult(success = false, error = "Calendar permission not granted")
+            context.startActivity(intent)
+            StepResult(success = true, data = mapOf("answer" to "Opening calendar to create '$title'"))
+        } catch (e: Exception) {
+            StepResult(success = false, error = "Failed to open calendar: ${e.message}")
         }
     }
 
