@@ -210,9 +210,12 @@ class MemoryExtractor @Inject constructor(
     }
 
     private suspend fun extractSearchPattern(params: Map<String, String>, taskId: String) {
-        val query = params["query"] ?: return
+        // Don't store every search as STM noise. Only remember a single "last_search"
+        // slot, overwritten each time.
+        val query = params["query"]?.trim() ?: return
+        if (query.isBlank()) return
         memoryManager.remember(
-            key = "search.recent.${System.currentTimeMillis()}",
+            key = "search.last",
             value = query,
             category = "context",
             source = "task:$taskId"

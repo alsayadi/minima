@@ -13,7 +13,7 @@ class NotificationCapability @Inject constructor() : CapabilityProvider {
 
     override val id = "notification"
 
-    override fun supportedActions() = listOf("triage", "dismiss", "draft_reply", "send_reply")
+    override fun supportedActions() = listOf("triage", "dismiss", "draft_reply", "send_reply", "summarize")
 
     // Injected at runtime by the notification listener service
     var notificationSource: (() -> List<NotificationInfo>)? = null
@@ -21,11 +21,25 @@ class NotificationCapability @Inject constructor() : CapabilityProvider {
     override suspend fun execute(step: ActionStep): StepResult {
         return when (step.action) {
             "triage" -> triageNotifications()
+            "summarize" -> summarize()
             "dismiss" -> dismissNotification(step.params)
             "draft_reply" -> draftReply(step.params)
             "send_reply" -> sendReply(step.params)
             else -> StepResult(success = false, error = "Unknown action: ${step.action}")
         }
+    }
+
+    private fun summarize(): StepResult {
+        val notifs = notificationSource?.invoke() ?: emptyList()
+        if (notifs.isEmpty()) {
+            return StepResult(true, data = mapOf("answer" to "No new notifications."))
+        }
+        val lines = notifs.take(5).joinToString("; ") { "${it.appName}: ${it.title}" }
+        val more = if (notifs.size > 5) " and ${notifs.size - 5} more" else ""
+        return StepResult(true, data = mapOf(
+            "answer" to "You have ${notifs.size} notifications. $lines$more.",
+            "count" to notifs.size.toString()
+        ))
     }
 
     private fun triageNotifications(): StepResult {

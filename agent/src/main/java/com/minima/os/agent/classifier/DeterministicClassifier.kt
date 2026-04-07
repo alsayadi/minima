@@ -171,6 +171,52 @@ class DeterministicClassifier @Inject constructor() : IntentClassifier {
                 mapOf("query" to query), input)
         }
 
+        // Alarm / timer
+        if (text.matchesAny("set alarm", "alarm for", "alarm at", "wake me", "set a timer",
+                "timer for", "start timer")) {
+            if (text.contains("timer")) {
+                val minMatch = Regex("(\\d+)\\s*(?:min|minute)").find(text)
+                val secMatch = Regex("(\\d+)\\s*(?:sec|second)").find(text)
+                val params = mutableMapOf<String, String>()
+                minMatch?.groupValues?.get(1)?.let { params["minutes"] = it }
+                secMatch?.groupValues?.get(1)?.let { params["seconds"] = it }
+                if (params.isNotEmpty()) {
+                    return ClassifiedIntent(IntentType.SET_ALARM, Confidence.HIGH, params, input)
+                }
+            }
+            val timeMatch = Regex("(?:at|for)\\s+([0-9:apm\\s]+)").find(text)
+            val time = timeMatch?.groupValues?.get(1)?.trim()
+                ?: text.removeLeading("set alarm", "alarm", "wake me up at", "wake me at", "wake me")
+            return ClassifiedIntent(IntentType.SET_ALARM, Confidence.HIGH,
+                mapOf("time" to time), input)
+        }
+
+        // Call contact
+        if (text.matchesAny("call ", "dial ", "phone ", "ring ")) {
+            val name = text.removeLeading("call", "dial", "phone", "ring")
+            return ClassifiedIntent(IntentType.CALL_CONTACT, Confidence.HIGH,
+                mapOf("name" to name), input)
+        }
+
+        // Unit/currency conversion
+        val convertRe = Regex("(?:convert\\s+)?([0-9.]+)\\s*([a-zA-Z]{1,12})\\s+(?:to|in|into)\\s+([a-zA-Z]{1,12})")
+        convertRe.find(text)?.let { m ->
+            return ClassifiedIntent(IntentType.CONVERT, Confidence.HIGH,
+                mapOf(
+                    "value" to m.groupValues[1],
+                    "from" to m.groupValues[2],
+                    "to" to m.groupValues[3]
+                ), input)
+        }
+
+        // Summarize notifications
+        if (text.matchesAny("what did i miss", "summarize notifications", "what's new",
+                "any notifications", "check notifications", "read notifications",
+                "catch me up")) {
+            return ClassifiedIntent(IntentType.SUMMARIZE_NOTIFICATIONS, Confidence.HIGH,
+                emptyMap(), input)
+        }
+
         // Flashlight / torch
         if (text.matchesAny("flashlight", "torch", "turn on light", "turn off light",
                 "turn on flashlight", "turn off flashlight", "light on", "light off")) {

@@ -99,6 +99,24 @@ class DeterministicPlanner @Inject constructor() : Planner {
                 step(taskId, "weather", "get_weather", intent.params, ApprovalLevel.AUTO)
             )
 
+            IntentType.SET_ALARM -> listOf(
+                step(taskId, "alarm",
+                    if (intent.params.containsKey("seconds") || intent.params.containsKey("minutes")) "set_timer" else "set_alarm",
+                    intent.params, ApprovalLevel.AUTO)
+            )
+
+            IntentType.CALL_CONTACT -> listOf(
+                step(taskId, "contacts", "call", intent.params, ApprovalLevel.AUTO)
+            )
+
+            IntentType.CONVERT -> listOf(
+                step(taskId, "convert", "convert", intent.params, ApprovalLevel.AUTO)
+            )
+
+            IntentType.SUMMARIZE_NOTIFICATIONS -> listOf(
+                step(taskId, "notification", "summarize", intent.params, ApprovalLevel.AUTO)
+            )
+
             IntentType.UNKNOWN -> emptyList()
         }
     }

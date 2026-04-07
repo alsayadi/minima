@@ -54,6 +54,7 @@ CREATE_EVENT, READ_CALENDAR, SET_REMINDER, SEND_MESSAGE, READ_MESSAGES,
 TRIAGE_NOTIFICATIONS, DISMISS_NOTIFICATION, REPLY_NOTIFICATION,
 ORDER_RIDE, ORDER_FOOD, SEARCH, OPEN_APP, DEVICE_SETTING,
 FLASHLIGHT, OPEN_CAMERA, MUSIC_CONTROL, CREATE_CALENDAR_EVENT, GET_WEATHER,
+SET_ALARM, CALL_CONTACT, CONVERT, SUMMARIZE_NOTIFICATIONS,
 REMEMBER, RECALL, ANSWER, UNKNOWN
 
 Rules:
@@ -81,6 +82,12 @@ Examples:
 - "pause the music" -> {"type": "MUSIC_CONTROL", "confidence": "HIGH", "params": {"action": "pause"}}
 - "next song" -> {"type": "MUSIC_CONTROL", "confidence": "HIGH", "params": {"action": "next"}}
 - "schedule a meeting with John tomorrow" -> {"type": "CREATE_CALENDAR_EVENT", "confidence": "HIGH", "params": {"title": "meeting with John"}}
+- "wake me up at 7am" -> {"type": "SET_ALARM", "confidence": "HIGH", "params": {"time": "7am"}}
+- "set a timer for 10 minutes" -> {"type": "SET_ALARM", "confidence": "HIGH", "params": {"minutes": "10"}}
+- "call Mom" -> {"type": "CALL_CONTACT", "confidence": "HIGH", "params": {"name": "Mom"}}
+- "50 USD in EUR" -> {"type": "CONVERT", "confidence": "HIGH", "params": {"value": "50", "from": "USD", "to": "EUR"}}
+- "10 miles in km" -> {"type": "CONVERT", "confidence": "HIGH", "params": {"value": "10", "from": "mi", "to": "km"}}
+- "what did I miss" -> {"type": "SUMMARIZE_NOTIFICATIONS", "confidence": "HIGH", "params": {}}
 - "tell me a joke" -> {"type": "ANSWER", "confidence": "HIGH", "params": {"query": "tell me a joke"}}
 - "what's 2 plus 2" -> {"type": "ANSWER", "confidence": "HIGH", "params": {"query": "what's 2 plus 2"}}
 - "hello" -> {"type": "ANSWER", "confidence": "HIGH", "params": {"query": "hello"}}

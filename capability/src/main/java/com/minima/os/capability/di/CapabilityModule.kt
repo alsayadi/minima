@@ -11,6 +11,9 @@ import com.minima.os.capability.chat.ChatCapability
 import com.minima.os.capability.memory.MemoryCapability
 import com.minima.os.capability.system.SystemCapability
 import com.minima.os.capability.weather.WeatherCapability
+import com.minima.os.capability.alarm.AlarmCapability
+import com.minima.os.capability.contacts.ContactsCapability
+import com.minima.os.capability.convert.ConvertCapability
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
@@ -43,7 +46,10 @@ object CapabilityProvidesModule {
         system: SystemCapability,
         memory: MemoryCapability,
         chat: ChatCapability,
-        weather: WeatherCapability
+        weather: WeatherCapability,
+        alarm: AlarmCapability,
+        contacts: ContactsCapability,
+        convert: ConvertCapability
     ): Map<String, @JvmSuppressWildcards CapabilityProvider> {
         return mapOf(
             "calendar" to calendar,
@@ -53,7 +59,10 @@ object CapabilityProvidesModule {
             "system" to system,
             "memory" to memory,
             "chat" to chat,
-            "weather" to weather
+            "weather" to weather,
+            "alarm" to alarm,
+            "contacts" to contacts,
+            "convert" to convert
         )
     }
 }

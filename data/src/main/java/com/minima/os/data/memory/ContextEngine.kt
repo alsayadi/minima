@@ -2,7 +2,13 @@ package com.minima.os.data.memory
 
 import com.minima.os.data.dao.MemoryDao
 import com.minima.os.model.provider.CloudModelProvider
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.*
+import org.json.JSONObject
+import java.net.HttpURLConnection
+import java.net.URL
+import java.net.URLEncoder
 import java.util.Calendar
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -33,6 +39,39 @@ class ContextEngine @Inject constructor(
     var testDayOfWeek: Int? = null
 
     private val json = Json { ignoreUnknownKeys = true }
+
+    // Simple weather cache
+    private var cachedTemperature: String? = null
+    private var cachedTempAt: Long = 0L
+    private val tempTtlMs = 30 * 60 * 1000L // 30 min
+
+    private suspend fun fetchTemperature(city: String?): String? = withContext(Dispatchers.IO) {
+        val now = System.currentTimeMillis()
+        if (cachedTemperature != null && now - cachedTempAt < tempTtlMs) return@withContext cachedTemperature
+        val loc = city?.takeIf { it.isNotBlank() } ?: "Dubai"
+        try {
+            val geoUrl = "https://geocoding-api.open-meteo.com/v1/search?name=${URLEncoder.encode(loc, "UTF-8")}&count=1"
+            val geo = JSONObject(fetch(geoUrl))
+            val results = geo.optJSONArray("results") ?: return@withContext null
+            if (results.length() == 0) return@withContext null
+            val lat = results.getJSONObject(0).getDouble("latitude")
+            val lon = results.getJSONObject(0).getDouble("longitude")
+            val wxUrl = "https://api.open-meteo.com/v1/forecast?latitude=$lat&longitude=$lon&current=temperature_2m"
+            val wx = JSONObject(fetch(wxUrl))
+            val t = wx.optJSONObject("current")?.optDouble("temperature_2m", Double.NaN) ?: Double.NaN
+            if (t.isNaN()) return@withContext null
+            val result = "${t.toInt()}°C"
+            cachedTemperature = result
+            cachedTempAt = now
+            result
+        } catch (_: Exception) { null }
+    }
+
+    private fun fetch(url: String): String {
+        val conn = URL(url).openConnection() as HttpURLConnection
+        conn.connectTimeout = 5000; conn.readTimeout = 5000
+        return conn.inputStream.bufferedReader().use { it.readText() }
+    }
 
     suspend fun generateContext(): ContextData {
         val cal = Calendar.getInstance()
@@ -130,7 +169,8 @@ Respond ONLY with JSON, no markdown:
             greeting = greeting,
             insightCards = cards.take(3),
             suggestions = suggestions.take(4),
-            isNewUser = false
+            isNewUser = false,
+            temperature = fetchTemperature(userLocation)
         )
     }
 
@@ -171,7 +211,8 @@ Respond ONLY with JSON, no markdown:
             else -> listOf("Set alarm for tomorrow", "Turn on do not disturb", "Tell me a joke")
         }
 
-        return ContextData(userName, greeting, cards, suggestions, isNewUser)
+        val temperature = fetchTemperature(userLocation)
+        return ContextData(userName, greeting, cards, suggestions, isNewUser, temperature)
     }
 
     private fun buildGreeting(hour: Int, name: String?): String {
