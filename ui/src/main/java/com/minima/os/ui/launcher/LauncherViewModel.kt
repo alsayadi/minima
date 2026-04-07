@@ -125,6 +125,7 @@ class LauncherViewModel @Inject constructor(
     // Voice input support
     private var voiceManager: com.minima.os.ui.voice.VoiceManager? = null
     private var speakNextResult = false
+    private var conversationMode = false
 
     private fun ensureVoiceManager(): com.minima.os.ui.voice.VoiceManager {
         return voiceManager ?: com.minima.os.ui.voice.VoiceManager(context).also {
@@ -147,6 +148,9 @@ class LauncherViewModel @Inject constructor(
                     commandText = text, isListening = false, voiceStatus = ""
                 )
                 speakNextResult = true
+                conversationMode = true
+                // Instant acknowledgment while LLM thinks
+                vm.speakFiller("one sec")
                 onSubmitCommand()
             }
             override fun onError(message: String) {
@@ -160,6 +164,7 @@ class LauncherViewModel @Inject constructor(
 
     fun stopVoiceInput() {
         voiceManager?.stopListening()
+        conversationMode = false
         _uiState.value = _uiState.value.copy(isListening = false, voiceStatus = "")
     }
 
@@ -191,14 +196,35 @@ class LauncherViewModel @Inject constructor(
 
         viewModelScope.launch {
             taskExecutor.execute(text)
-            // Speak result if voice-initiated
             if (speakNextResult) {
                 speakNextResult = false
                 val latest = taskExecutor.taskHistory.value.firstOrNull()
-                val answer = latest?.steps?.lastOrNull()?.result?.data?.get("answer")
-                    ?: latest?.steps?.lastOrNull()?.result?.data?.get("app")?.let { "Opening $it" }
+                val lastStep = latest?.steps?.lastOrNull()
+                val rawData = lastStep?.result?.data ?: emptyMap()
+                val rawFallback = rawData["answer"]
+                    ?: rawData["app"]?.let { "Opening $it" }
                     ?: "Done"
-                voiceManager?.speak(answer)
+
+                val naturalReply = try {
+                    val dataBlock = rawData.entries.joinToString("; ") { "${it.key}=${it.value}" }
+                    val prompt = """User said: "$text"
+Task result data: $dataBlock
+Success: ${lastStep?.result?.success ?: false}
+
+Respond in ONE short warm sentence as if speaking to a friend. No markdown, no lists, no quotes. Under 20 words. If it's a question, answer it. If it's an action, acknowledge what you did naturally."""
+                    cloudModelProvider.draft(prompt).trim().removeSurrounding("\"")
+                } catch (_: Exception) { rawFallback }
+
+                val toSpeak = if (naturalReply.isBlank()) rawFallback else naturalReply
+                voiceManager?.speakFinal(toSpeak) {
+                    // After TTS finishes, reopen mic for follow-up conversation
+                    if (conversationMode) {
+                        viewModelScope.launch {
+                            kotlinx.coroutines.delay(400)
+                            startVoiceInput()
+                        }
+                    }
+                }
             }
             refreshContext()
             refreshProactiveCards()

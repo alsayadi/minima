@@ -7,6 +7,7 @@ import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
 import android.speech.tts.TextToSpeech
+import android.speech.tts.UtteranceProgressListener
 import java.util.Locale
 
 /**
@@ -28,6 +29,7 @@ class VoiceManager(private val context: Context) {
     private var tts: TextToSpeech? = null
     private var ttsReady = false
     private var isListening = false
+    private var onSpeakDone: (() -> Unit)? = null
 
     fun ensureInit() {
         if (tts == null) {
@@ -35,6 +37,18 @@ class VoiceManager(private val context: Context) {
                 if (status == TextToSpeech.SUCCESS) {
                     tts?.language = Locale.getDefault()
                     ttsReady = true
+                    tts?.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
+                        override fun onStart(utteranceId: String?) {}
+                        override fun onDone(utteranceId: String?) {
+                            if (utteranceId?.startsWith("minima-final-") == true) {
+                                val cb = onSpeakDone
+                                onSpeakDone = null
+                                cb?.invoke()
+                            }
+                        }
+                        @Deprecated("Deprecated in Java")
+                        override fun onError(utteranceId: String?) {}
+                    })
                 }
             }
         }
@@ -113,6 +127,21 @@ class VoiceManager(private val context: Context) {
         if (text.isBlank()) return
         ensureInit()
         tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, "minima-${System.currentTimeMillis()}")
+    }
+
+    /** Speak a short filler while LLM is processing. Does NOT flush. */
+    fun speakFiller(text: String) {
+        if (text.isBlank()) return
+        ensureInit()
+        tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, "minima-filler-${System.currentTimeMillis()}")
+    }
+
+    /** Speak final result and invoke callback when done (for conversation follow-up). */
+    fun speakFinal(text: String, onDone: (() -> Unit)? = null) {
+        if (text.isBlank()) { onDone?.invoke(); return }
+        ensureInit()
+        onSpeakDone = onDone
+        tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, "minima-final-${System.currentTimeMillis()}")
     }
 
     fun shutdown() {
