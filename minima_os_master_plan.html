@@ -1,0 +1,339 @@
+
+<style>
+* { box-sizing: border-box; }
+.phase-nav { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 1.5rem; }
+.phase-btn { font-size: 12px; padding: 5px 12px; border-radius: 20px; border: 0.5px solid var(--color-border-secondary); background: transparent; color: var(--color-text-secondary); cursor: pointer; font-family: var(--font-sans); transition: all 0.15s; }
+.phase-btn:hover { background: var(--color-background-secondary); }
+.phase-btn.active { background: #EEEDFE; color: #3C3489; border-color: #AFA9EC; font-weight: 500; }
+.phase-panel { display: none; }
+.phase-panel.active { display: block; }
+.phase-header { margin-bottom: 1.25rem; }
+.phase-title { font-size: 18px; font-weight: 500; color: var(--color-text-primary); margin: 0 0 4px; }
+.phase-sub { font-size: 13px; color: var(--color-text-secondary); margin: 0; }
+.week-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); gap: 6px; margin-bottom: 1.25rem; }
+.week-card { background: var(--color-background-secondary); border-radius: var(--border-radius-md); padding: 10px 12px; }
+.week-label { font-size: 11px; font-weight: 500; color: var(--color-text-tertiary); margin: 0 0 4px; text-transform: uppercase; letter-spacing: 0.04em; }
+.week-title { font-size: 13px; font-weight: 500; color: var(--color-text-primary); margin: 0 0 6px; }
+.week-items { list-style: none; margin: 0; padding: 0; }
+.week-items li { font-size: 12px; color: var(--color-text-secondary); padding: 2px 0; display: flex; align-items: flex-start; gap: 6px; line-height: 1.5; }
+.week-items li:before { content: ""; width: 4px; height: 4px; border-radius: 50%; background: var(--color-text-tertiary); margin-top: 6px; flex-shrink: 0; }
+.milestone-row { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-top: 0.5px solid var(--color-border-tertiary); }
+.milestone-row:last-child { border-bottom: 0.5px solid var(--color-border-tertiary); }
+.m-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.m-label { font-size: 13px; color: var(--color-text-primary); flex: 1; }
+.m-tag { font-size: 11px; padding: 2px 8px; border-radius: 4px; font-weight: 500; }
+.stack-row { display: grid; grid-template-columns: 120px 1fr; gap: 10px; align-items: start; padding: 8px 0; border-top: 0.5px solid var(--color-border-tertiary); }
+.stack-label { font-size: 12px; color: var(--color-text-secondary); }
+.stack-bar { font-size: 12px; padding: 4px 10px; border-radius: 4px; color: var(--color-text-primary); background: var(--color-background-secondary); }
+.risk-card { background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-md); padding: 10px 12px; margin-bottom: 8px; display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: start; }
+.risk-name { font-size: 13px; font-weight: 500; color: var(--color-text-primary); margin: 0 0 3px; }
+.risk-fix { font-size: 12px; color: var(--color-text-secondary); margin: 0; }
+.sev { font-size: 11px; padding: 2px 8px; border-radius: 4px; font-weight: 500; white-space: nowrap; }
+</style>
+
+<div style="padding: 1rem 0;">
+  <div class="phase-nav">
+    <button class="phase-btn active" onclick="show('v1')">v1 — AI launcher</button>
+    <button class="phase-btn" onclick="show('v2')">v2 — Memory OS</button>
+    <button class="phase-btn" onclick="show('v3')">v3 — Native OS</button>
+    <button class="phase-btn" onclick="show('stack')">Tech stack</button>
+    <button class="phase-btn" onclick="show('team')">Team</button>
+    <button class="phase-btn" onclick="show('risks')">Risks</button>
+  </div>
+
+  <div class="phase-panel active" id="panel-v1">
+    <div class="phase-header">
+      <p class="phase-title">v1 — AI launcher (months 1–6)</p>
+      <p class="phase-sub">Android app. Prove the loop. Get 500 real users. Ship nothing you can't rely on.</p>
+    </div>
+    <div class="week-grid" style="grid-template-columns: repeat(3, minmax(0,1fr));">
+      <div class="week-card">
+        <p class="week-label">Weeks 1–2</p>
+        <p class="week-title">Contracts + spec</p>
+        <ul class="week-items">
+          <li>Lock 3 workflows only</li>
+          <li>Define capability schema</li>
+          <li>Write approval matrix</li>
+          <li>Pick 5–8 first apps</li>
+          <li>One-page product spec</li>
+        </ul>
+      </div>
+      <div class="week-card">
+        <p class="week-label">Weeks 3–4</p>
+        <p class="week-title">Shell UI</p>
+        <ul class="week-items">
+          <li>Custom launcher (HOME role)</li>
+          <li>Context surface — no icon grid</li>
+          <li>Universal command bar</li>
+          <li>Task feed skeleton</li>
+          <li>Hardcoded fake flows to test UX</li>
+        </ul>
+      </div>
+      <div class="week-card">
+        <p class="week-label">Weeks 5–6</p>
+        <p class="week-title">Agent core</p>
+        <ul class="week-items">
+          <li>Intent classifier</li>
+          <li>Planner + task state machine</li>
+          <li>Approval engine (4 levels)</li>
+          <li>Action log — immutable receipts</li>
+          <li>Deterministic first, no LLM yet</li>
+        </ul>
+      </div>
+      <div class="week-card">
+        <p class="week-label">Weeks 7–8</p>
+        <p class="week-title">Model routing</p>
+        <ul class="week-items">
+          <li>Provider interface (classify, draft, plan)</li>
+          <li>Local model for short private tasks</li>
+          <li>Cloud fallback for hard reasoning</li>
+          <li>No provider names in UI</li>
+          <li>Cache layer for repeat tasks</li>
+        </ul>
+      </div>
+      <div class="week-card">
+        <p class="week-label">Weeks 9–10</p>
+        <p class="week-title">Capabilities</p>
+        <ul class="week-items">
+          <li>Calendar + reminders</li>
+          <li>Notification triage + drafts</li>
+          <li>Messaging send (with approval)</li>
+          <li>One commerce flow (rides or food)</li>
+          <li>Intents + deep links first, AppFunctions later</li>
+        </ul>
+      </div>
+      <div class="week-card">
+        <p class="week-label">Weeks 11–12</p>
+        <p class="week-title">Private beta</p>
+        <ul class="week-items">
+          <li>20–50 real testers</li>
+          <li>Measure: cmds/day, completion rate</li>
+          <li>Measure: fallback rate (target &lt;20%)</li>
+          <li>Fix trust + reliability first</li>
+          <li>Identify top 20 failure patterns</li>
+        </ul>
+      </div>
+    </div>
+    <p style="font-size: 12px; font-weight: 500; color: var(--color-text-tertiary); margin: 0 0 6px; text-transform: uppercase; letter-spacing: 0.04em;">Phase 1 milestones</p>
+    <div class="milestone-row"><div class="m-dot" style="background:#534AB7;"></div><span class="m-label">Launcher lives as default for 10 min without user confusion</span><span class="m-tag" style="background:#EEEDFE;color:#3C3489;">Week 4</span></div>
+    <div class="milestone-row"><div class="m-dot" style="background:#534AB7;"></div><span class="m-label">3 workflows running end-to-end with approval</span><span class="m-tag" style="background:#EEEDFE;color:#3C3489;">Week 10</span></div>
+    <div class="milestone-row"><div class="m-dot" style="background:#534AB7;"></div><span class="m-label">500 DAU, 60%+ task completion, &lt;20% fallback</span><span class="m-tag" style="background:#EEEDFE;color:#3C3489;">Month 6</span></div>
+  </div>
+
+  <div class="phase-panel" id="panel-v2">
+    <div class="phase-header">
+      <p class="phase-title">v2 — Memory OS (months 7–18)</p>
+      <p class="phase-sub">The OS starts knowing you. This is the moat. No incumbent will build this well due to regulatory exposure.</p>
+    </div>
+    <div class="week-grid" style="grid-template-columns: repeat(2, minmax(0,1fr));">
+      <div class="week-card">
+        <p class="week-label">Months 7–9</p>
+        <p class="week-title">Personal knowledge graph</p>
+        <ul class="week-items">
+          <li>On-device graph DB (people, places, projects)</li>
+          <li>STM: last 48h context (hot)</li>
+          <li>MTM: last 30 days (warm, compressed)</li>
+          <li>LTM: preferences, patterns, relationships</li>
+          <li>Full audit UI — user sees everything OS knows</li>
+        </ul>
+      </div>
+      <div class="week-card">
+        <p class="week-label">Months 9–12</p>
+        <p class="week-title">Context surface v2</p>
+        <ul class="week-items">
+          <li>Home renders from memory + calendar + signals</li>
+          <li>No configuration — inferred from behavior</li>
+          <li>Cold start onboarding (explicit seed questions)</li>
+          <li>Relationship graph surfaces on incoming comms</li>
+          <li>Project awareness across apps</li>
+        </ul>
+      </div>
+      <div class="week-card">
+        <p class="week-label">Months 12–15</p>
+        <p class="week-title">Proactive layer</p>
+        <ul class="week-items">
+          <li>Interrupt cost model (state-aware)</li>
+          <li>Surfaces only when cost of silence &gt; interrupt cost</li>
+          <li>Morning brief, transition summaries</li>
+          <li>Cross-thread pattern detection</li>
+          <li>User-adjustable sensitivity</li>
+        </ul>
+      </div>
+      <div class="week-card">
+        <p class="week-label">Months 15–18</p>
+        <p class="week-title">Capability expansion</p>
+        <ul class="week-items">
+          <li>20+ app integrations</li>
+          <li>Email triage + drafting loop</li>
+          <li>Financial actions (with Level 3 approval)</li>
+          <li>Third-party agent marketplace (early)</li>
+          <li>Enterprise MDM distribution path</li>
+        </ul>
+      </div>
+    </div>
+    <p style="font-size: 12px; font-weight: 500; color: var(--color-text-tertiary); margin: 0 0 6px; text-transform: uppercase; letter-spacing: 0.04em;">Phase 2 milestones</p>
+    <div class="milestone-row"><div class="m-dot" style="background:#0F6E56;"></div><span class="m-label">Memory layer live — users can view and edit what OS knows</span><span class="m-tag" style="background:#E1F5EE;color:#085041;">Month 9</span></div>
+    <div class="milestone-row"><div class="m-dot" style="background:#0F6E56;"></div><span class="m-label">Home surface requires zero configuration from new users</span><span class="m-tag" style="background:#E1F5EE;color:#085041;">Month 12</span></div>
+    <div class="milestone-row"><div class="m-dot" style="background:#0F6E56;"></div><span class="m-label">5,000+ DAU. Retention &gt;60% at 30 days.</span><span class="m-tag" style="background:#E1F5EE;color:#085041;">Month 18</span></div>
+  </div>
+
+  <div class="phase-panel" id="panel-v3">
+    <div class="phase-header">
+      <p class="phase-title">v3 — Native OS (months 19–42)</p>
+      <p class="phase-sub">Move below the launcher. AOSP fork or OEM partnership. The architecture from Blueprint 3 becomes real.</p>
+    </div>
+    <div class="week-grid" style="grid-template-columns: repeat(2, minmax(0,1fr));">
+      <div class="week-card">
+        <p class="week-label">Months 19–24</p>
+        <p class="week-title">AOSP fork + agent scheduler</p>
+        <ul class="week-items">
+          <li>Fork AOSP — keep Linux kernel</li>
+          <li>Replace SystemUI with agent-native shell</li>
+          <li>Privileged agent scheduler service</li>
+          <li>Below-the-launcher notification control</li>
+          <li>OEM partnership conversations begin</li>
+        </ul>
+      </div>
+      <div class="week-card">
+        <p class="week-label">Months 24–30</p>
+        <p class="week-title">Capability-based security</p>
+        <ul class="week-items">
+          <li>Agent contract spec (capability declarations)</li>
+          <li>Fine-grained permission model per agent per action</li>
+          <li>Replace per-app sandbox with agent sandboxing</li>
+          <li>Local-first data — no default telemetry</li>
+          <li>Verifiable audit trail at OS level</li>
+        </ul>
+      </div>
+      <div class="week-card">
+        <p class="week-label">Months 30–36</p>
+        <p class="week-title">Generative UI runtime</p>
+        <ul class="week-items">
+          <li>Native component renderer from structured intent</li>
+          <li>Context-aware UI density (rush vs. focused vs. idle)</li>
+          <li>Zero permanent apps for top 20 use cases</li>
+          <li>Android compat layer for long-tail apps</li>
+          <li>Developer SDK for skill/agent publishing</li>
+        </ul>
+      </div>
+      <div class="week-card">
+        <p class="week-label">Months 36–42</p>
+        <p class="week-title">Hardware + silicon path</p>
+        <ul class="week-items">
+          <li>Reference device with OEM partner</li>
+          <li>NPU tuned for on-device model stack</li>
+          <li>Always-on ambient layer (low-power)</li>
+          <li>Cross-device continuity (phone + watch + glasses)</li>
+          <li>Enterprise fleet licensing model</li>
+        </ul>
+      </div>
+    </div>
+    <p style="font-size: 12px; font-weight: 500; color: var(--color-text-tertiary); margin: 0 0 6px; text-transform: uppercase; letter-spacing: 0.04em;">Phase 3 milestones</p>
+    <div class="milestone-row"><div class="m-dot" style="background:#BA7517;"></div><span class="m-label">AOSP fork running on reference hardware</span><span class="m-tag" style="background:#FAEEDA;color:#633806;">Month 24</span></div>
+    <div class="milestone-row"><div class="m-dot" style="background:#BA7517;"></div><span class="m-label">Agent contract spec published — first third-party agents</span><span class="m-tag" style="background:#FAEEDA;color:#633806;">Month 30</span></div>
+    <div class="milestone-row"><div class="m-dot" style="background:#BA7517;"></div><span class="m-label">OEM device ships. 50K+ users on native OS.</span><span class="m-tag" style="background:#FAEEDA;color:#633806;">Month 42</span></div>
+  </div>
+
+  <div class="phase-panel" id="panel-stack">
+    <div class="phase-header">
+      <p class="phase-title">Tech stack — by layer</p>
+      <p class="phase-sub">What you build on, not what you rebuild from scratch.</p>
+    </div>
+    <div style="border-top: 0.5px solid var(--color-border-tertiary);">
+      <div class="stack-row"><span class="stack-label">Surface (v1)</span><span class="stack-bar">Jetpack Compose, Android launcher role (RoleManager), NotificationListenerService</span></div>
+      <div class="stack-row"><span class="stack-label">Agent core</span><span class="stack-bar">Kotlin service, task state machine, deterministic planner, action log (append-only SQLite)</span></div>
+      <div class="stack-row"><span class="stack-label">Capabilities</span><span class="stack-bar">Android Intents + deep links first — AppFunctions (Android 16+) when ecosystem matures</span></div>
+      <div class="stack-row"><span class="stack-label">Models (v1)</span><span class="stack-bar">Gemini Nano / LiteRT on-device + cloud API fallback (Claude / GPT). No custom training.</span></div>
+      <div class="stack-row"><span class="stack-label">Memory (v2)</span><span class="stack-bar">On-device graph DB (e.g. RoomDB + custom schema) + vector index (FAISS or ObjectBox). Never cloud by default.</span></div>
+      <div class="stack-row"><span class="stack-label">OS layer (v3)</span><span class="stack-bar">AOSP fork, Linux kernel retained, custom SystemUI replaced, privileged agent scheduler as system service</span></div>
+      <div class="stack-row"><span class="stack-label">Security (v3)</span><span class="stack-bar">Capability-based model (Fuchsia-inspired), agent contract spec, per-action permission grants</span></div>
+    </div>
+  </div>
+
+  <div class="phase-panel" id="panel-team">
+    <div class="phase-header">
+      <p class="phase-title">Team build-out</p>
+      <p class="phase-sub">Minimum viable and then what you add as each phase unlocks.</p>
+    </div>
+    <div class="week-grid" style="grid-template-columns: repeat(3, minmax(0,1fr));">
+      <div class="week-card">
+        <p class="week-label">Day 1 — v1 team</p>
+        <p class="week-title">5 people</p>
+        <ul class="week-items">
+          <li>1 founder / product / CEO</li>
+          <li>2 Android engineers (launcher + agent)</li>
+          <li>1 backend / agent infra engineer</li>
+          <li>1 designer (UX + visual)</li>
+        </ul>
+      </div>
+      <div class="week-card">
+        <p class="week-label">v2 additions</p>
+        <p class="week-title">+4 people</p>
+        <ul class="week-items">
+          <li>1 ML / on-device inference engineer</li>
+          <li>1 data / memory systems engineer</li>
+          <li>1 partnerships (app integrations)</li>
+          <li>1 QA / reliability</li>
+        </ul>
+      </div>
+      <div class="week-card">
+        <p class="week-label">v3 additions</p>
+        <p class="week-title">+6–10 people</p>
+        <ul class="week-items">
+          <li>2 systems / OS engineers (AOSP)</li>
+          <li>1 security / capability model</li>
+          <li>1 hardware / OEM liaison</li>
+          <li>2–4 platform / SDK engineers</li>
+        </ul>
+      </div>
+    </div>
+    <p style="font-size: 12px; font-weight: 500; color: var(--color-text-tertiary); margin: 1rem 0 6px; text-transform: uppercase; letter-spacing: 0.04em;">Funding gates</p>
+    <div class="milestone-row"><div class="m-dot" style="background:#534AB7;"></div><span class="m-label">Pre-seed / self-funded: v1 build (5 people, 6 months)</span><span class="m-tag" style="background:#EEEDFE;color:#3C3489;">~$500K</span></div>
+    <div class="milestone-row"><div class="m-dot" style="background:#0F6E56;"></div><span class="m-label">Seed: v2 memory layer + 5K DAU proof</span><span class="m-tag" style="background:#E1F5EE;color:#085041;">$3–5M</span></div>
+    <div class="milestone-row"><div class="m-dot" style="background:#BA7517;"></div><span class="m-label">Series A: AOSP fork + OEM partnership</span><span class="m-tag" style="background:#FAEEDA;color:#633806;">$15–25M</span></div>
+  </div>
+
+  <div class="phase-panel" id="panel-risks">
+    <div class="phase-header">
+      <p class="phase-title">Risks and how to kill them</p>
+      <p class="phase-sub">Know these before you start, not after they hit.</p>
+    </div>
+    <div class="risk-card">
+      <div><p class="risk-name">Launcher switching inertia</p><p class="risk-fix">Notification triage must be so good that people change launchers just for it. That's the wedge action, not general AI features.</p></div>
+      <span class="sev" style="background:#FCEBEB;color:#791F1F;">High</span>
+    </div>
+    <div class="risk-card">
+      <div><p class="risk-name">AppFunctions ecosystem too thin</p><p class="risk-fix">Build on intents + deep links first. Treat AppFunctions as a bonus layer, not the foundation. Don't wait for the ecosystem.</p></div>
+      <span class="sev" style="background:#FCEBEB;color:#791F1F;">High</span>
+    </div>
+    <div class="risk-card">
+      <div><p class="risk-name">Trust failure from wrong action</p><p class="risk-fix">4-level approval model, immutable action log, easy undo. First broken trust event kills the product permanently.</p></div>
+      <span class="sev" style="background:#FCEBEB;color:#791F1F;">High</span>
+    </div>
+    <div class="risk-card">
+      <div><p class="risk-name">Google closes the distribution surface</p><p class="risk-fix">Enterprise/MDM path as parallel track. A fleet of 10K managed devices beats 100K consumer downloads at this stage.</p></div>
+      <span class="sev" style="background:#FAEEDA;color:#633806;">Medium</span>
+    </div>
+    <div class="risk-card">
+      <div><p class="risk-name">Latency makes it feel worse than typing</p><p class="risk-fix">Local-first for all classification + short drafts. Cloud only for reasoning. Cache aggressively. Target &lt;1.5s for common tasks.</p></div>
+      <span class="sev" style="background:#FAEEDA;color:#633806;">Medium</span>
+    </div>
+    <div class="risk-card">
+      <div><p class="risk-name">"Cool demo, no daily habit"</p><p class="risk-fix">Own the notification + messaging loop. Daily pain, daily use. Everything else is features until this habit is locked.</p></div>
+      <span class="sev" style="background:#FAEEDA;color:#633806;">Medium</span>
+    </div>
+    <div class="risk-card">
+      <div><p class="risk-name">Cold start — empty memory is useless</p><p class="risk-fix">Explicit structured onboarding (10 questions that seed the knowledge graph). Value on day 1 can't require 30 days of observation.</p></div>
+      <span class="sev" style="background:#EAF3DE;color:#27500A;">Low-med</span>
+    </div>
+  </div>
+</div>
+
+<script>
+function show(id) {
+  document.querySelectorAll('.phase-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.phase-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('panel-' + id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>

@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Minima OS | Onboarding</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&amp;family=Manrope:wght@200..800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "outline": "#757485",
+                    "on-secondary": "#2f0074",
+                    "surface-container-high": "#1e1e2f",
+                    "error-dim": "#d73357",
+                    "on-primary": "#270498",
+                    "surface-variant": "#242437",
+                    "primary-fixed-dim": "#8f83ff",
+                    "error": "#ff6e84",
+                    "on-secondary-container": "#d9c8ff",
+                    "secondary": "#b190fe",
+                    "inverse-surface": "#fcf8ff",
+                    "inverse-primary": "#5a4bc8",
+                    "outline-variant": "#474656",
+                    "on-secondary-fixed-variant": "#5c3ba4",
+                    "on-tertiary-fixed-variant": "#6e1048",
+                    "on-tertiary-fixed": "#360021",
+                    "on-error": "#490013",
+                    "primary-fixed": "#9d93ff",
+                    "surface-container": "#181828",
+                    "surface": "#0d0d1a",
+                    "surface-bright": "#2a2a3f",
+                    "surface-tint": "#aca3ff",
+                    "secondary-fixed": "#dbc9ff",
+                    "background": "#0d0d1a",
+                    "tertiary-fixed-dim": "#f07db6",
+                    "tertiary-dim": "#ed7ab3",
+                    "inverse-on-surface": "#545363",
+                    "on-secondary-fixed": "#3f1986",
+                    "on-tertiary-container": "#5f003d",
+                    "secondary-fixed-dim": "#ceb9ff",
+                    "primary": "#aca3ff",
+                    "on-surface-variant": "#aba9bb",
+                    "on-background": "#e9e6f9",
+                    "tertiary-container": "#fd87c1",
+                    "primary-container": "#9d93ff",
+                    "on-primary-fixed-variant": "#240094",
+                    "on-primary-fixed": "#000000",
+                    "tertiary": "#ff9ecb",
+                    "secondary-dim": "#ac8bf8",
+                    "surface-container-low": "#121220",
+                    "on-tertiary": "#6d0f47",
+                    "on-error-container": "#ffb2b9",
+                    "on-primary-container": "#1c007a",
+                    "error-container": "#a70138",
+                    "surface-dim": "#0d0d1a",
+                    "primary-dim": "#9b90ff",
+                    "tertiary-fixed": "#ff8bc3",
+                    "surface-container-highest": "#242437",
+                    "on-surface": "#e9e6f9",
+                    "secondary-container": "#523099",
+                    "surface-container-lowest": "#000000"
+            },
+            "borderRadius": {
+                    "DEFAULT": "1rem",
+                    "lg": "2rem",
+                    "xl": "3rem",
+                    "full": "9999px"
+            },
+            "fontFamily": {
+                    "headline": ["Manrope"],
+                    "body": ["Inter"],
+                    "label": ["Inter"]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body {
+            background-color: #0d0d1a;
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(172, 163, 255, 0.05) 0px, transparent 50%),
+                radial-gradient(at 100% 0%, rgba(172, 163, 255, 0.03) 0px, transparent 50%),
+                radial-gradient(at 50% 100%, rgba(172, 163, 255, 0.02) 0px, transparent 50%);
+            min-height: 100vh;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+        }
+        .glass-panel {
+            background: rgba(24, 24, 40, 0.2);
+            backdrop-filter: blur(40px);
+            -webkit-backdrop-filter: blur(40px);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="font-body text-on-surface overflow-hidden">
+<header class="fixed top-0 w-full flex justify-between items-center px-8 py-6 w-full bg-[#0D0D1A]/10 backdrop-blur-2xl z-50">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-[#ACA3FF] text-2xl" data-icon="blur_on">blur_on</span>
+<span class="font-headline font-thin tracking-[0.2em] uppercase text-lg text-[#ACA3FF]">Minima OS</span>
+</div>
+<div class="hidden md:flex gap-8">
+<span class="font-label text-sm text-[#ACA3FF] opacity-30 hover:opacity-100 transition-opacity cursor-pointer">Help</span>
+<span class="font-label text-sm text-[#ACA3FF] opacity-30 hover:opacity-100 transition-opacity cursor-pointer">Security</span>
+</div>
+</header>
+<main class="relative h-screen w-full flex items-center justify-center p-6">
+<div class="max-w-xl w-full">
+<div class="glass-panel p-10 md:p-16 rounded-lg relative overflow-hidden">
+<div class="absolute top-0 left-0 w-full h-1 bg-primary/10">
+<div class="h-full bg-primary w-1/4"></div>
+</div>
+<div class="flex items-center gap-2 mb-12 opacity-60">
+<span class="material-symbols-outlined text-sm" data-icon="auto_awesome">auto_awesome</span>
+<span class="text-xs font-label uppercase tracking-widest">Initialization Phase</span>
+</div>
+<h1 class="font-headline text-4xl md:text-5xl font-extralight tracking-tight text-on-surface leading-tight mb-12">
+                    Let me get to <br/>
+<span class="text-primary font-light italic">know you.</span>
+</h1>
+<div class="space-y-6">
+<label class="block text-sm font-label text-on-surface-variant tracking-wide opacity-60">Question 1 of 4</label>
+<div class="group relative">
+<input class="w-full bg-surface-container-highest/30 border-none focus:ring-0 text-2xl md:text-3xl font-headline font-thin py-6 px-0 border-b border-outline-variant/20 placeholder:text-outline/30 focus:border-primary transition-all" placeholder="Type your answer..." type="text"/>
+<div class="absolute bottom-0 left-0 h-[1px] w-0 bg-primary group-focus-within:w-full transition-all duration-700"></div>
+</div>
+</div>
+<div class="mt-16 flex items-center gap-4">
+<div class="bg-primary/10 px-4 py-2 rounded-sm flex items-center gap-3">
+<span class="material-symbols-outlined text-primary text-sm" data-icon="memory">memory</span>
+<span class="text-[10px] font-label text-primary uppercase tracking-[0.15em]">2 memories synced</span>
+</div>
+<p class="text-xs text-on-surface-variant font-label opacity-40">Privacy protocol active</p>
+</div>
+</div>
+<div class="mt-12 flex justify-center gap-3">
+<div class="w-1.5 h-1.5 rounded-full bg-primary shadow-[0_0_8px_rgba(172,163,255,0.6)]"></div>
+<div class="w-1.5 h-1.5 rounded-full bg-outline-variant/30"></div>
+<div class="w-1.5 h-1.5 rounded-full bg-outline-variant/30"></div>
+<div class="w-1.5 h-1.5 rounded-full bg-outline-variant/30"></div>
+</div>
+</div>
+</main>
+<footer class="fixed bottom-8 left-0 right-0 px-8 flex justify-between items-center max-w-5xl mx-auto z-50">
+<button class="px-8 py-3 rounded-full text-on-surface-variant font-label text-sm tracking-widest hover:text-on-surface transition-colors">
+            SKIP
+        </button>
+<div class="flex items-center gap-12 glass-panel rounded-full px-8 py-3 shadow-[0_40px_60px_-15px_rgba(172,163,255,0.08)]">
+<button class="text-[#ACA3FF] opacity-60 p-3 hover:bg-[#ACA3FF]/10 hover:scale-105 transition-all rounded-full group">
+<span class="material-symbols-outlined align-middle" data-icon="arrow_back">arrow_back</span>
+</button>
+<button class="bg-[#ACA3FF]/20 text-[#ACA3FF] rounded-full p-3 hover:bg-[#ACA3FF]/30 hover:scale-105 transition-all flex items-center gap-3 pr-6">
+<span class="material-symbols-outlined align-middle" data-icon="arrow_forward">arrow_forward</span>
+<span class="text-xs font-label uppercase tracking-widest font-semibold">Next</span>
+</button>
+</div>
+<div class="w-24 md:block hidden"></div>
+</footer>
+<div class="fixed top-1/4 right-0 w-[500px] h-[500px] bg-primary/5 blur-[120px] rounded-full -z-10 pointer-events-none"></div>
+<div class="fixed bottom-1/4 left-0 w-[400px] h-[400px] bg-secondary/5 blur-[100px] rounded-full -z-10 pointer-events-none"></div>
+</body></html>

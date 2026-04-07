@@ -1,0 +1,204 @@
+<html class="dark"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@100;200;400;700&amp;family=Inter:wght@300;400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "on-primary-fixed-variant": "#240094",
+            "inverse-primary": "#5a4bc8",
+            "surface": "#0d0d1a",
+            "tertiary-fixed": "#ff8bc3",
+            "tertiary-container": "#fd87c1",
+            "surface-bright": "#2a2a3f",
+            "inverse-surface": "#fcf8ff",
+            "primary-fixed-dim": "#8f83ff",
+            "surface-variant": "#242437",
+            "on-surface": "#e9e6f9",
+            "primary-dim": "#9b90ff",
+            "surface-tint": "#aca3ff",
+            "outline-variant": "#474656",
+            "tertiary-dim": "#ed7ab3",
+            "tertiary-fixed-dim": "#f07db6",
+            "surface-container-low": "#121220",
+            "on-secondary-fixed": "#3f1986",
+            "on-background": "#e9e6f9",
+            "on-primary-fixed": "#000000",
+            "on-error": "#490013",
+            "secondary-fixed": "#dbc9ff",
+            "on-secondary-fixed-variant": "#5c3ba4",
+            "background": "#0d0d1a",
+            "on-tertiary-fixed": "#360021",
+            "surface-container-lowest": "#000000",
+            "on-primary-container": "#1c007a",
+            "on-tertiary": "#6d0f47",
+            "on-tertiary-container": "#5f003d",
+            "surface-container": "#181828",
+            "secondary-container": "#523099",
+            "outline": "#757485",
+            "primary": "#aca3ff",
+            "inverse-on-surface": "#545363",
+            "secondary-dim": "#ac8bf8",
+            "error-dim": "#d73357",
+            "secondary-fixed-dim": "#ceb9ff",
+            "surface-container-highest": "#242437",
+            "on-secondary-container": "#d9c8ff",
+            "on-secondary": "#2f0074",
+            "on-primary": "#270498",
+            "primary-fixed": "#9d93ff",
+            "on-surface-variant": "#aba9bb",
+            "surface-dim": "#0d0d1a",
+            "surface-container-high": "#1e1e2f",
+            "on-error-container": "#ffb2b9",
+            "tertiary": "#ff9ecb",
+            "error": "#ff6e84",
+            "error-container": "#a70138",
+            "secondary": "#b190fe",
+            "on-tertiary-fixed-variant": "#6e1048",
+            "primary-container": "#9d93ff"
+          },
+          "borderRadius": {
+            "DEFAULT": "1rem",
+            "lg": "2rem",
+            "xl": "3rem",
+            "full": "9999px"
+          },
+          "fontFamily": {
+            "headline": ["Manrope"],
+            "body": ["Inter"],
+            "label": ["Inter"]
+          }
+        },
+      },
+    }
+  </script>
+<style>
+    body {
+      background: radial-gradient(circle at top right, #1a1a2e 0%, #0d0d1a 100%);
+      font-family: 'Inter', sans-serif;
+    }
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    }
+    .glass-card {
+      background: rgba(255, 255, 255, 0.03);
+      backdrop-filter: blur(40px);
+      -webkit-backdrop-filter: blur(40px);
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-surface min-h-screen overflow-x-hidden">
+<!-- TopAppBar: Time and Status -->
+<header class="flex flex-col items-start w-full pt-12 px-8 max-w-7xl mx-auto">
+<div class="flex justify-between items-center w-full mb-2">
+<span class="material-symbols-outlined text-primary text-xl">calendar_today</span>
+<span class="material-symbols-outlined text-primary text-xl">signal_cellular_4_bar</span>
+</div>
+<h1 class="font-['Manrope'] font-thin text-7xl opacity-90 tracking-tighter text-white/90">12:48</h1>
+<p class="text-on-surface-variant text-sm mt-1 font-body opacity-60">Monday, October 24</p>
+</header>
+<!-- Main Feed Container -->
+<main class="max-w-xl mx-auto px-6 pt-12 pb-32 flex flex-col gap-6">
+<!-- Proactive Card -->
+<section class="glass-card rounded-lg p-8 border border-white/5 relative overflow-hidden group">
+<div class="absolute top-0 right-0 w-32 h-32 bg-primary/10 blur-3xl -mr-16 -mt-16 group-hover:bg-primary/20 transition-all duration-700"></div>
+<div class="flex flex-col gap-4 relative z-10">
+<div class="flex items-center gap-2">
+<div class="w-2 h-2 rounded-full bg-primary animate-pulse"></div>
+<span class="text-xs uppercase tracking-widest text-primary/80 font-semibold">Live Insight</span>
+</div>
+<h2 class="text-2xl font-headline font-light leading-snug">Good morning, Ahmed. You have a meeting at 3pm.</h2>
+<div class="flex items-center gap-4 mt-2">
+<div class="flex items-center gap-2 bg-white/5 px-3 py-1.5 rounded-full border border-white/5">
+<span class="material-symbols-outlined text-sm text-tertiary">memory</span>
+<span class="text-sm font-label text-on-surface/80">14 memories</span>
+</div>
+<button class="text-sm font-label text-primary flex items-center gap-1 group">
+            Tap to act 
+            <span class="material-symbols-outlined text-sm group-hover:translate-x-1 transition-transform">arrow_forward</span>
+</button>
+</div>
+</div>
+</section>
+<!-- Conversation Feed -->
+<div class="flex flex-col gap-4">
+<!-- Card 1: Completed Task -->
+<div class="glass-card rounded-lg p-6 border border-white/5 flex flex-col gap-3 transition-all hover:bg-white/5">
+<div class="flex justify-between items-start">
+<p class="text-on-surface-variant font-body italic">"remind me to call mom"</p>
+<span class="material-symbols-outlined text-primary text-lg" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+</div>
+<div class="flex items-center gap-3">
+<div class="w-1.5 h-1.5 rounded-full bg-emerald-400"></div>
+<p class="text-on-surface font-medium">Reminder set for 6pm</p>
+</div>
+</div>
+<!-- Card 2: AI Joke (Processing/Active) -->
+<div class="glass-card rounded-lg p-6 border border-white/5 flex flex-col gap-4 transition-all hover:bg-white/5">
+<div class="flex justify-between items-start">
+<p class="text-on-surface-variant font-body italic">"tell me a joke"</p>
+<div class="flex gap-1">
+<div class="w-1 h-1 bg-primary rounded-full animate-bounce"></div>
+<div class="w-1 h-1 bg-primary rounded-full animate-bounce [animation-delay:0.2s]"></div>
+<div class="w-1 h-1 bg-primary rounded-full animate-bounce [animation-delay:0.4s]"></div>
+</div>
+</div>
+<div class="flex flex-col gap-2 border-l-2 border-primary/20 pl-4 py-1">
+<p class="text-on-surface leading-relaxed font-body">
+            Why do programmers prefer dark mode?
+          </p>
+<p class="text-primary font-medium leading-relaxed font-body">
+            Because light attracts bugs!
+          </p>
+<div class="h-px w-12 bg-white/10 my-1"></div>
+<p class="text-xs text-on-surface-variant/40 leading-relaxed italic">
+            I found this in your 'Dad Jokes' memory cluster. 
+            Would you like another one or something more sophisticated?
+          </p>
+</div>
+</div>
+<!-- Card 3: Additional Context/Visual -->
+<div class="glass-card rounded-lg overflow-hidden border border-white/5">
+<div class="h-48 relative">
+<img class="w-full h-full object-cover opacity-60" data-alt="abstract flowing glass sculpture with iridescent purple and blue gradients against a dark void" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC6XSzi_u0GVXA4MaCpXy-LEBwKjcZXYxX8MWBjaUxjadpStGbonINwKTYZaiSrYBfjoO5GLT_fDYfDe5cbNHTa3IKArt_3JkPDo8F9kcflPLLL_sxey-OSxcUn6drugBR5J065ldRcTnsNA8uNXFtq5Zye992MNVbTBPkzVuSSUBm9m61FTW3msvJ8-yupU4FrD_AzAWXyZtsLnwj44g7Uoxh3sy-sPT2OtByrJco8E3lJA9a_9HTeWolV0fmAwbkbXnXfgaoDUswJ"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface to-transparent"></div>
+<div class="absolute bottom-4 left-6">
+<span class="text-xs text-primary bg-primary/10 px-2 py-0.5 rounded-sm backdrop-blur-md">Focus Mode</span>
+<h3 class="text-lg font-headline mt-1">Deep Work initiated</h3>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- BottomNavBar: Command Bar Pill -->
+<nav class="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-md h-16 rounded-full border border-white/15 bg-white/10 dark:bg-slate-900/10 backdrop-blur-3xl shadow-[0_20px_50px_rgba(172,163,255,0.08)] flex justify-between items-center px-6 z-50">
+<!-- Inactive: Search -->
+<button class="text-white/60 p-3 hover:bg-white/5 transition-all duration-300 scale-95 active:scale-90 flex items-center justify-center">
+<span class="material-symbols-outlined">search</span>
+</button>
+<!-- Active: Apps/Home -->
+<button class="bg-[#ACA3FF]/20 text-[#ACA3FF] rounded-full p-3 hover:bg-white/5 transition-all duration-300 scale-95 active:scale-90 flex items-center justify-center">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">apps</span>
+</button>
+<!-- Inactive: Mic -->
+<button class="text-white/60 p-3 hover:bg-white/5 transition-all duration-300 scale-95 active:scale-90 flex items-center justify-center">
+<span class="material-symbols-outlined">mic</span>
+</button>
+</nav>
+<!-- Subtle background decoration -->
+<div class="fixed top-0 left-0 w-full h-full pointer-events-none -z-10 overflow-hidden">
+<div class="absolute top-[10%] left-[-10%] w-[60%] h-[60%] bg-primary/5 rounded-full blur-[120px]"></div>
+<div class="absolute bottom-[20%] right-[-10%] w-[40%] h-[40%] bg-secondary/5 rounded-full blur-[100px]"></div>
+</div>
+</body></html>

@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Minima OS</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&amp;family=Manrope:wght@100;200;300;500;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-primary-fixed-variant": "#240094",
+                    "inverse-primary": "#5a4bc8",
+                    "surface": "#0d0d1a",
+                    "tertiary-fixed": "#ff8bc3",
+                    "tertiary-container": "#fd87c1",
+                    "surface-bright": "#2a2a3f",
+                    "inverse-surface": "#fcf8ff",
+                    "primary-fixed-dim": "#8f83ff",
+                    "surface-variant": "#242437",
+                    "on-surface": "#e9e6f9",
+                    "primary-dim": "#9b90ff",
+                    "surface-tint": "#aca3ff",
+                    "outline-variant": "#474656",
+                    "tertiary-dim": "#ed7ab3",
+                    "tertiary-fixed-dim": "#f07db6",
+                    "surface-container-low": "#121220",
+                    "on-secondary-fixed": "#3f1986",
+                    "on-background": "#e9e6f9",
+                    "on-primary-fixed": "#000000",
+                    "on-error": "#490013",
+                    "secondary-fixed": "#dbc9ff",
+                    "on-secondary-fixed-variant": "#5c3ba4",
+                    "background": "#0d0d1a",
+                    "on-tertiary-fixed": "#360021",
+                    "surface-container-lowest": "#000000",
+                    "on-primary-container": "#1c007a",
+                    "on-tertiary": "#6d0f47",
+                    "on-tertiary-container": "#5f003d",
+                    "surface-container": "#181828",
+                    "secondary-container": "#523099",
+                    "outline": "#757485",
+                    "primary": "#aca3ff",
+                    "inverse-on-surface": "#545363",
+                    "secondary-dim": "#ac8bf8",
+                    "error-dim": "#d73357",
+                    "secondary-fixed-dim": "#ceb9ff",
+                    "surface-container-highest": "#242437",
+                    "on-secondary-container": "#d9c8ff",
+                    "on-secondary": "#2f0074",
+                    "on-primary": "#270498",
+                    "primary-fixed": "#9d93ff",
+                    "on-surface-variant": "#aba9bb",
+                    "surface-dim": "#0d0d1a",
+                    "surface-container-high": "#1e1e2f",
+                    "on-error-container": "#ffb2b9",
+                    "tertiary": "#ff9ecb",
+                    "error": "#ff6e84",
+                    "error-container": "#a70138",
+                    "secondary": "#b190fe",
+                    "on-tertiary-fixed-variant": "#6e1048",
+                    "primary-container": "#9d93ff"
+            },
+            "borderRadius": {
+                    "DEFAULT": "1rem",
+                    "lg": "2rem",
+                    "xl": "3rem",
+                    "full": "9999px"
+            },
+            "fontFamily": {
+                    "headline": ["Manrope"],
+                    "body": ["Inter"],
+                    "label": ["Inter"]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body {
+            background: radial-gradient(circle at top right, #1a1a2e 0%, #0d0d1a 60%);
+            min-height: 100vh;
+            color: #e9e6f9;
+        }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(40px);
+            -webkit-backdrop-filter: blur(40px);
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 200, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="font-body selection:bg-primary/30">
+<!-- Top Navigation Anchor (As per Shell Visibility Rule: Suppressed for Home OS screen to prioritize negative space) -->
+<!-- Instead, utilizing the specific "Minima" Header requested -->
+<header class="flex flex-col items-start w-full pt-20 px-8 max-w-7xl mx-auto">
+<div class="flex flex-col space-y-2">
+<div class="inline-flex items-center px-4 py-1.5 rounded-full bg-primary/10 border border-primary/10 mb-6">
+<span class="text-xs font-medium text-primary tracking-wide">Good morning, Ahmed</span>
+</div>
+<h1 class="font-headline font-thin text-8xl md:text-9xl text-on-surface opacity-90 tracking-tighter leading-none">
+                12:48
+            </h1>
+<div class="flex items-center space-x-3 mt-2">
+<span class="text-xl font-light text-on-surface-variant">Monday, Apr 6</span>
+<span class="w-1.5 h-1.5 rounded-full bg-primary/40"></span>
+<span class="text-xl font-light text-on-surface-variant">22°C</span>
+</div>
+</div>
+</header>
+<main class="max-w-7xl mx-auto px-8 mt-16 space-y-16">
+<!-- Insight Chips Section -->
+<section class="w-full">
+<div class="flex items-center space-x-4 overflow-x-auto pb-4 no-scrollbar">
+<!-- Insight Chip 1 -->
+<div class="flex-shrink-0 flex items-center space-x-3 px-6 py-4 rounded-xl bg-surface-container-low border border-outline-variant/10">
+<span class="material-symbols-outlined text-primary">coffee</span>
+<span class="text-on-surface opacity-80 text-sm font-medium tracking-wide">Coffee time?</span>
+</div>
+<!-- Insight Chip 2 -->
+<div class="flex-shrink-0 flex items-center space-x-3 px-6 py-4 rounded-xl bg-surface-container-low border border-outline-variant/10">
+<span class="material-symbols-outlined text-primary">calendar_today</span>
+<span class="text-on-surface opacity-80 text-sm font-medium tracking-wide">Meeting at 3pm</span>
+</div>
+<!-- Insight Chip 3 -->
+<div class="flex-shrink-0 flex items-center space-x-3 px-6 py-4 rounded-xl bg-surface-container-low border border-outline-variant/10">
+<span class="material-symbols-outlined text-primary">wb_sunny</span>
+<span class="text-on-surface opacity-80 text-sm font-medium tracking-wide">Clear skies today</span>
+</div>
+</div>
+</section>
+<!-- Empty State / Suggestions Feed -->
+<section class="flex flex-col items-start space-y-8 py-12">
+<div class="space-y-2">
+<h2 class="text-on-surface-variant font-light text-2xl">Your day is clear.</h2>
+<p class="text-outline text-lg">What can I help you discover?</p>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-2xl">
+<!-- Suggestion Card 1 -->
+<button class="flex items-center justify-between p-5 rounded-2xl bg-surface-container-high/40 hover:bg-surface-container-high transition-colors group text-left">
+<div class="flex flex-col">
+<span class="text-xs text-primary/60 font-medium uppercase tracking-widest mb-1">AI Suggestion</span>
+<span class="text-on-surface text-lg font-light italic">"Summarize my day"</span>
+</div>
+<span class="material-symbols-outlined text-outline group-hover:text-primary transition-colors">auto_awesome</span>
+</button>
+<!-- Suggestion Card 2 -->
+<button class="flex items-center justify-between p-5 rounded-2xl bg-surface-container-high/40 hover:bg-surface-container-high transition-colors group text-left">
+<div class="flex flex-col">
+<span class="text-xs text-primary/60 font-medium uppercase tracking-widest mb-1">Utility</span>
+<span class="text-on-surface text-lg font-light italic">"How is the traffic?"</span>
+</div>
+<span class="material-symbols-outlined text-outline group-hover:text-primary transition-colors">directions_car</span>
+</button>
+<!-- Suggestion Card 3 -->
+<button class="flex items-center justify-between p-5 rounded-2xl bg-surface-container-high/40 hover:bg-surface-container-high transition-colors group text-left">
+<div class="flex flex-col">
+<span class="text-xs text-primary/60 font-medium uppercase tracking-widest mb-1">Knowledge</span>
+<span class="text-on-surface text-lg font-light italic">"Play some lofi"</span>
+</div>
+<span class="material-symbols-outlined text-outline group-hover:text-primary transition-colors">music_note</span>
+</button>
+<!-- Suggestion Card 4 -->
+<button class="flex items-center justify-between p-5 rounded-2xl bg-surface-container-high/40 hover:bg-surface-container-high transition-colors group text-left">
+<div class="flex flex-col">
+<span class="text-xs text-primary/60 font-medium uppercase tracking-widest mb-1">Routine</span>
+<span class="text-on-surface text-lg font-light italic">"Evening meditation"</span>
+</div>
+<span class="material-symbols-outlined text-outline group-hover:text-primary transition-colors">self_improvement</span>
+</button>
+</div>
+</section>
+</main>
+<!-- Command Bar (The Pill) -->
+<nav class="fixed bottom-10 left-1/2 -translate-x-1/2 w-[90%] max-w-md z-50">
+<div class="glass-panel border border-white/10 rounded-full h-16 flex items-center justify-between px-2 shadow-[0_20px_50px_rgba(172,163,255,0.12)]">
+<!-- Left Icon: Apps -->
+<button class="flex items-center justify-center w-12 h-12 rounded-full text-white/60 hover:text-primary hover:bg-white/5 transition-all">
+<span class="material-symbols-outlined" data-icon="apps">apps</span>
+</button>
+<!-- Middle: Input Text -->
+<div class="flex-1 px-4">
+<span class="text-on-surface/50 font-light text-sm tracking-wide">What do you need?</span>
+</div>
+<!-- Right Icon: Mic -->
+<button class="flex items-center justify-center w-12 h-12 rounded-full bg-primary/20 text-primary hover:scale-105 active:scale-95 transition-all">
+<span class="material-symbols-outlined" data-icon="mic" data-weight="fill" style="font-variation-settings: 'FILL' 1;">mic</span>
+</button>
+</div>
+</nav>
+<!-- Decorative Background Image/Gradient Layer -->
+<div class="fixed inset-0 pointer-events-none z-[-1] opacity-20 overflow-hidden">
+<div class="absolute -top-40 -right-40 w-96 h-96 bg-primary/20 blur-[120px] rounded-full"></div>
+<div class="absolute top-1/2 left-1/4 w-[600px] h-[600px] bg-secondary-container/10 blur-[160px] rounded-full"></div>
+<img alt="Background textures" class="w-full h-full object-cover mix-blend-overlay" data-alt="abstract flowing dark obsidian waves with ethereal purple light leak and grainy texture" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCaJYe4cwdTHKkWMDYAs-BW1byo9VMlIfNd9gL77qB-NvrFjmq0WqWL_GJHfluM5CvTvQQrEop8FA0C18H0w9izyD_cxNbOYiRidhnvF7akxMnB9vgs9IFBrjNN3uOb920b6dpRr8m_AQxiVL5cfDpu-nUHipwgaz52v4jE1cSFd1h9yes5LSVLBSdyLY4ot4nSPrZGpkev_GQBcQQg5nh5Wr7oUkF7rikXD6_d6WaAiAghwfXdIMORbNnNZyKQ6iCnB_tY5H3flR2x"/>
+</div>
+</body></html>

@@ -1,0 +1,181 @@
+package com.minima.os.ui.proactive
+
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.*
+import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Text
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.minima.os.data.memory.ProactiveEngine
+import com.minima.os.ui.theme.MinimaColors
+
+@Composable
+fun ProactiveCardView(
+    card: ProactiveEngine.ProactiveCard,
+    onTap: ((String) -> Unit)?,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(MinimaColors.glass)
+            .border(1.dp, Color.White.copy(alpha = 0.05f), RoundedCornerShape(16.dp))
+            .then(if (card.action != null) Modifier.clickable { card.action?.let { onTap?.invoke(it) } } else Modifier)
+    ) {
+        // Ambient glow in top-right corner
+        Box(
+            modifier = Modifier
+                .size(128.dp)
+                .align(Alignment.TopEnd)
+                .offset(x = 40.dp, y = (-40).dp)
+                .background(
+                    Brush.radialGradient(
+                        colors = listOf(
+                            MinimaColors.primary.copy(alpha = 0.10f),
+                            Color.Transparent
+                        )
+                    )
+                )
+        )
+
+        Column(
+            modifier = Modifier.padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            // Header: pulse dot + "Live Insight" + dismiss
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    // Pulse dot
+                    Box(
+                        modifier = Modifier
+                            .size(8.dp)
+                            .clip(CircleShape)
+                            .background(MinimaColors.primary)
+                    )
+                    Text(
+                        text = "LIVE INSIGHT",
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MinimaColors.primary.copy(alpha = 0.80f),
+                        letterSpacing = 1.5.sp
+                    )
+                }
+
+                if (card.dismissable) {
+                    IconButton(onClick = onDismiss, modifier = Modifier.size(20.dp)) {
+                        Icon(
+                            Icons.Rounded.Close, "Dismiss",
+                            tint = Color.White.copy(alpha = 0.30f),
+                            modifier = Modifier.size(14.dp)
+                        )
+                    }
+                }
+            }
+
+            // Title — large, light
+            Text(
+                text = card.title,
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Light,
+                color = MinimaColors.onSurface,
+                lineHeight = 26.sp
+            )
+
+            // Body
+            Text(
+                text = card.body,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Normal,
+                color = MinimaColors.onSurface.copy(alpha = 0.70f),
+                lineHeight = 20.sp,
+                maxLines = 3,
+                overflow = TextOverflow.Ellipsis
+            )
+
+            // Footer: memory count badge + tap to act
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(top = 4.dp)
+            ) {
+                if (card.action != null) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text(
+                            text = "Tap to act",
+                            fontSize = 13.sp,
+                            color = MinimaColors.primary,
+                            fontWeight = FontWeight.Normal
+                        )
+                        Icon(
+                            Icons.Outlined.ArrowForward,
+                            null,
+                            tint = MinimaColors.primary,
+                            modifier = Modifier.size(14.dp)
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun ProactiveCardList(
+    cards: List<ProactiveEngine.ProactiveCard>,
+    onCardTap: (String) -> Unit,
+    onDismiss: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        cards.forEach { card ->
+            var visible by remember { mutableStateOf(true) }
+            AnimatedVisibility(
+                visible = visible,
+                enter = slideInVertically() + fadeIn(),
+                exit = slideOutVertically() + fadeOut()
+            ) {
+                ProactiveCardView(
+                    card = card,
+                    onTap = onCardTap,
+                    onDismiss = { visible = false; onDismiss(card.id) }
+                )
+            }
+        }
+    }
+}

@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Minima OS Onboarding - Step 3</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@100;200;300;400;500;600;700;800&amp;family=Inter:wght@100;200;300;400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "outline": "#757485",
+                    "on-secondary": "#2f0074",
+                    "surface-container-high": "#1e1e2f",
+                    "error-dim": "#d73357",
+                    "on-primary": "#270498",
+                    "surface-variant": "#242437",
+                    "primary-fixed-dim": "#8f83ff",
+                    "error": "#ff6e84",
+                    "on-secondary-container": "#d9c8ff",
+                    "secondary": "#b190fe",
+                    "inverse-surface": "#fcf8ff",
+                    "inverse-primary": "#5a4bc8",
+                    "outline-variant": "#474656",
+                    "on-secondary-fixed-variant": "#5c3ba4",
+                    "on-tertiary-fixed-variant": "#6e1048",
+                    "on-tertiary-fixed": "#360021",
+                    "on-error": "#490013",
+                    "primary-fixed": "#9d93ff",
+                    "surface-container": "#181828",
+                    "surface": "#0d0d1a",
+                    "surface-bright": "#2a2a3f",
+                    "surface-tint": "#aca3ff",
+                    "secondary-fixed": "#dbc9ff",
+                    "background": "#0d0d1a",
+                    "tertiary-fixed-dim": "#f07db6",
+                    "tertiary-dim": "#ed7ab3",
+                    "inverse-on-surface": "#545363",
+                    "on-secondary-fixed": "#3f1986",
+                    "on-tertiary-container": "#5f003d",
+                    "secondary-fixed-dim": "#ceb9ff",
+                    "primary": "#aca3ff",
+                    "on-surface-variant": "#aba9bb",
+                    "on-background": "#e9e6f9",
+                    "tertiary-container": "#fd87c1",
+                    "primary-container": "#9d93ff",
+                    "on-primary-fixed-variant": "#240094",
+                    "on-primary-fixed": "#000000",
+                    "tertiary": "#ff9ecb",
+                    "secondary-dim": "#ac8bf8",
+                    "surface-container-low": "#121220",
+                    "on-tertiary": "#6d0f47",
+                    "on-error-container": "#ffb2b9",
+                    "on-primary-container": "#1c007a",
+                    "error-container": "#a70138",
+                    "surface-dim": "#0d0d1a",
+                    "primary-dim": "#9b90ff",
+                    "tertiary-fixed": "#ff8bc3",
+                    "surface-container-highest": "#242437",
+                    "on-surface": "#e9e6f9",
+                    "secondary-container": "#523099",
+                    "surface-container-lowest": "#000000"
+            },
+            "borderRadius": {
+                    "DEFAULT": "1rem",
+                    "lg": "2rem",
+                    "xl": "3rem",
+                    "full": "9999px"
+            },
+            "fontFamily": {
+                    "headline": ["Manrope"],
+                    "body": ["Inter"],
+                    "label": ["Inter"]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body {
+            background-color: #0d0d1a;
+            background-image: radial-gradient(circle at 0% 0%, #1e1e2f 0%, transparent 50%),
+                              radial-gradient(circle at 100% 100%, #1c007a 0%, transparent 50%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+        }
+        .glass-card {
+            background: rgba(13, 13, 26, 0.4);
+            backdrop-filter: blur(40px);
+            -webkit-backdrop-filter: blur(40px);
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="font-body text-on-surface">
+<!-- Top Navigation Anchor (Manual Mockup based on JSON rules for Onboarding context) -->
+<header class="fixed top-0 w-full flex justify-between items-center px-8 py-6 z-50 bg-[#0D0D1A]/10 backdrop-blur-2xl">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[#ACA3FF] text-2xl" data-icon="blur_on">blur_on</span>
+<h1 class="font-headline font-thin tracking-[0.2em] uppercase text-lg text-[#ACA3FF]">Minima OS</h1>
+</div>
+<div class="hidden md:flex gap-8">
+<span class="font-label text-xs uppercase tracking-widest text-[#ACA3FF] opacity-30">Step 03</span>
+</div>
+</header>
+<main class="flex-grow flex items-center justify-center px-6 py-24">
+<!-- Main Content Area -->
+<div class="w-full max-w-2xl">
+<!-- Header Group -->
+<div class="mb-12 text-center md:text-left">
+<h2 class="font-headline text-5xl md:text-7xl font-thin tracking-tight mb-4 text-on-surface opacity-90">What's your focus?</h2>
+<p class="font-body text-lg text-on-surface-variant opacity-60 max-w-md">Tailoring your ecosystem to the way you think and create.</p>
+</div>
+<!-- Focus Selection Glass Card -->
+<div class="glass-card rounded-lg p-8 md:p-12 mb-8 shadow-[0_40px_60px_-15px_rgba(172,163,255,0.08)]">
+<!-- Input Field Section -->
+<div class="space-y-6">
+<label class="block font-label text-xs uppercase tracking-[0.2em] text-primary opacity-70 mb-4">Your Primary Role</label>
+<div class="relative">
+<input class="w-full bg-surface-container-highest border-0 rounded-DEFAULT px-6 py-5 text-xl font-body text-on-surface placeholder:text-outline focus:ring-0 focus:bg-surface-bright transition-all duration-300" placeholder="e.g., Creative Director, Engineer..." type="text"/>
+<div class="absolute right-4 top-1/2 -translate-y-1/2 flex gap-2">
+<span class="material-symbols-outlined text-primary/40" data-icon="keyboard_command_key">keyboard_command_key</span>
+<span class="material-symbols-outlined text-primary/40" data-icon="key">key</span>
+</div>
+</div>
+<!-- Suggestions Grid -->
+<div class="flex flex-wrap gap-3 mt-8">
+<button class="px-5 py-2 rounded-sm bg-secondary-container/20 text-on-secondary-container font-label text-sm hover:bg-secondary-container/40 transition-colors">Designer</button>
+<button class="px-5 py-2 rounded-sm bg-secondary-container/20 text-on-secondary-container font-label text-sm hover:bg-secondary-container/40 transition-colors">Developer</button>
+<button class="px-5 py-2 rounded-sm bg-secondary-container/20 text-on-secondary-container font-label text-sm hover:bg-secondary-container/40 transition-colors">Executive</button>
+<button class="px-5 py-2 rounded-sm bg-secondary-container/20 text-on-secondary-container font-label text-sm hover:bg-secondary-container/40 transition-colors">Artist</button>
+<button class="px-5 py-2 rounded-sm bg-secondary-container/20 text-on-secondary-container font-label text-sm hover:bg-secondary-container/40 transition-colors">Architect</button>
+</div>
+</div>
+</div>
+<!-- Action Controls -->
+<div class="flex flex-col md:flex-row items-center justify-between gap-8">
+<!-- Progress Dots -->
+<div class="flex gap-4">
+<div class="w-2 h-2 rounded-full bg-primary opacity-20"></div>
+<div class="w-2 h-2 rounded-full bg-primary opacity-20"></div>
+<div class="w-8 h-2 rounded-full bg-primary"></div>
+<div class="w-2 h-2 rounded-full bg-primary opacity-20"></div>
+</div>
+<!-- Navigation Buttons -->
+<div class="flex items-center gap-6 w-full md:w-auto">
+<button class="flex-1 md:flex-none px-8 py-3 font-label text-sm uppercase tracking-widest text-on-surface-variant opacity-60 hover:opacity-100 transition-opacity">
+                        Skip
+                    </button>
+<button class="flex-1 md:flex-none px-12 py-4 bg-gradient-to-br from-primary to-primary-container text-on-primary-container rounded-full font-label font-bold text-sm uppercase tracking-widest shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all">
+                        Next
+                    </button>
+</div>
+</div>
+</div>
+</main>
+<!-- Visual Anchor / Image Grid (Bento Style) -->
+<section class="hidden lg:grid fixed right-12 top-1/2 -translate-y-1/2 grid-cols-2 gap-4 w-1/4 h-[530px] opacity-40 pointer-events-none">
+<div class="col-span-1 row-span-2 rounded-lg overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="minimalist architectural detail of a concrete building with sharp shadows and blue sky" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBid-VALauQK5kl788xnG6IJOHRdHOO21S6Tu6DblNxa8Z5xCRJ43jf96DYqBjpA5b8jRZThJ1ID-WoZWQZ8Pcsq0i9CynmVBqIH5P4NyzqJCVYAoWS2mObgZvnE9nfHnjVJ9dTxSBtDYBkJznSkTof6iANv_PethP3QAyWvlqTWZ6Lp13auenOCi6TufxqmkwWcjnkSMWFfpl2OA7_x3yQ4iC0Uaw8eOmMecUCJh2r6qSpQXeTfmS1L7dbPhCpXB9jcecnX8gg1ze3"/>
+</div>
+<div class="col-span-1 rounded-lg overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="abstract liquid metal textures with deep purple and violet reflections and soft lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBdpV71J8It2FKcZB5-8URW8W1OlUD95MnRSn5YOBaXCtBAlg0q5II5DR8PMn8YjGJDpAZrRq5NFoJSnkwVBchdXKPCYNlcjdnKHdAu_Ex5xpqTl_w4w90waCXNbWK3XXK0RvXldCuZCZgGzGYOA1ghP5ZHE4fxHyTGgRK2xsHDxT5pqN7Iz7aoAfPOA-zjplJNhN05oOUUydOcjj2JNOx2InE-Py5dmGtBvzmEFUV1sxwcHQRwswAFCWXIKax9MSaIEJYfQ8dNh2Nv"/>
+</div>
+<div class="col-span-1 rounded-lg overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="top down view of a clean workspace with a single mechanical keyboard and soft ambient glow" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCnnyfvFR_3u2roOv-YR8k99z5_k-j3PAwoSvMjTHVJwQcBEn-cWXrvylA6akM1YPVvvV4pvm_LBVHBZk16IpBdbGpThl62u6DlMs-cMewRbJBf51MpjuBgVmHEbBOPMtQeiN7WKm2o_qDXsyzgfh49rRRp_BoGl3I06_IQ6zpYK36DpICIelD3jStxZO_26-ZoIOMsXusl5a7d5wKJgV36lghHoPZ5iWAnaejxN24CiLjUuM5ctMOHrik0YunGikT9GWTcAovDxl9w"/>
+</div>
+</section>
+<!-- Bottom Navigation Shell (Predicted based on JSON structure but modified for linear onboarding) -->
+<!-- Suppression Logic: Suppressed as per "Linear/Transactional" rule in Prompt -->
+<!-- But keeping a simplified 'Control' bar for navigation as per user's "Progress Dots" requirement -->
+<div class="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 flex gap-12 justify-center items-center bg-[#181828]/20 backdrop-blur-3xl rounded-full px-8 py-3 w-auto shadow-[0_40px_60px_-15px_rgba(172,163,255,0.08)]">
+<button class="text-[#ACA3FF] opacity-60 p-3 hover:opacity-100 transition-opacity">
+<span class="material-symbols-outlined" data-icon="arrow_back">arrow_back</span>
+</button>
+<span class="font-label text-xs text-[#ACA3FF] opacity-40 tracking-widest">STEP 03 / 04</span>
+<button class="bg-[#ACA3FF]/20 text-[#ACA3FF] rounded-full p-3 hover:scale-105 transition-all">
+<span class="material-symbols-outlined" data-icon="arrow_forward">arrow_forward</span>
+</button>
+</div>
+</body></html>

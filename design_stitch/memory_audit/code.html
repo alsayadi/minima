@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Minima OS - Memory Audit</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&amp;family=Manrope:wght@100;200;300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-primary-fixed-variant": "#240094",
+                        "inverse-primary": "#5a4bc8",
+                        "surface": "#0d0d1a",
+                        "tertiary-fixed": "#ff8bc3",
+                        "tertiary-container": "#fd87c1",
+                        "surface-bright": "#2a2a3f",
+                        "inverse-surface": "#fcf8ff",
+                        "primary-fixed-dim": "#8f83ff",
+                        "surface-variant": "#242437",
+                        "on-surface": "#e9e6f9",
+                        "primary-dim": "#9b90ff",
+                        "surface-tint": "#aca3ff",
+                        "outline-variant": "#474656",
+                        "tertiary-dim": "#ed7ab3",
+                        "tertiary-fixed-dim": "#f07db6",
+                        "surface-container-low": "#121220",
+                        "on-secondary-fixed": "#3f1986",
+                        "on-background": "#e9e6f9",
+                        "on-primary-fixed": "#000000",
+                        "on-error": "#490013",
+                        "secondary-fixed": "#dbc9ff",
+                        "on-secondary-fixed-variant": "#5c3ba4",
+                        "background": "#0d0d1a",
+                        "on-tertiary-fixed": "#360021",
+                        "surface-container-lowest": "#000000",
+                        "on-primary-container": "#1c007a",
+                        "on-tertiary": "#6d0f47",
+                        "on-tertiary-container": "#5f003d",
+                        "surface-container": "#181828",
+                        "secondary-container": "#523099",
+                        "outline": "#757485",
+                        "primary": "#aca3ff",
+                        "inverse-on-surface": "#545363",
+                        "secondary-dim": "#ac8bf8",
+                        "error-dim": "#d73357",
+                        "secondary-fixed-dim": "#ceb9ff",
+                        "surface-container-highest": "#242437",
+                        "on-secondary-container": "#d9c8ff",
+                        "on-secondary": "#2f0074",
+                        "on-primary": "#270498",
+                        "primary-fixed": "#9d93ff",
+                        "on-surface-variant": "#aba9bb",
+                        "surface-dim": "#0d0d1a",
+                        "surface-container-high": "#1e1e2f",
+                        "on-error-container": "#ffb2b9",
+                        "tertiary": "#ff9ecb",
+                        "error": "#ff6e84",
+                        "error-container": "#a70138",
+                        "secondary": "#b190fe",
+                        "on-tertiary-fixed-variant": "#6e1048",
+                        "primary-container": "#9d93ff"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "1rem",
+                        "lg": "2rem",
+                        "xl": "3rem",
+                        "full": "9999px"
+                    },
+                    "fontFamily": {
+                        "headline": ["Manrope"],
+                        "body": ["Inter"],
+                        "label": ["Inter"]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; background-color: #0d0d1a; overflow: hidden; }
+        .glass-sheet { backdrop-filter: blur(40px); background: rgba(24, 24, 40, 0.7); }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="h-screen w-full flex flex-col justify-end bg-surface">
+<!-- Top App Bar (As specified in JSON for shell) -->
+<header class="flex flex-col items-start w-full pt-12 px-8 max-w-7xl mx-auto absolute top-0 left-0 right-0 z-0">
+<h1 class="font-['Manrope'] font-thin text-7xl opacity-90 text-[#ACA3FF]">12:48</h1>
+<div class="flex justify-between w-full mt-4">
+<span class="material-symbols-outlined text-[#ACA3FF]">calendar_today</span>
+<span class="material-symbols-outlined text-[#ACA3FF]">signal_cellular_4_bar</span>
+</div>
+</header>
+<!-- Main Content Background (Visual Depth) -->
+<div class="fixed inset-0 z-[-1] opacity-40">
+<div class="absolute top-1/4 left-1/4 w-96 h-96 bg-primary-container rounded-full blur-[120px]"></div>
+<div class="absolute bottom-1/4 right-1/4 w-96 h-96 bg-secondary-container rounded-full blur-[120px]"></div>
+</div>
+<!-- Frosted Glass Bottom Sheet (85% height) -->
+<main class="glass-sheet w-full h-[751px] rounded-t-xl relative z-10 overflow-hidden flex flex-col border-t border-white/5">
+<!-- Header Section -->
+<div class="pt-8 px-6 pb-4">
+<div class="flex justify-between items-start mb-6">
+<div>
+<h2 class="text-3xl font-headline font-semibold text-on-surface tracking-tight">Memory</h2>
+<p class="text-on-surface-variant font-body font-light">14 memories | 2 people</p>
+</div>
+<button class="w-10 h-10 flex items-center justify-center rounded-full bg-surface-container-highest hover:bg-surface-bright transition-colors">
+<span class="material-symbols-outlined text-on-surface-variant">close</span>
+</button>
+</div>
+<!-- Tier Badges -->
+<div class="flex gap-3 mb-8">
+<div class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/20">
+<div class="w-2 h-2 rounded-full bg-amber-500"></div>
+<span class="text-xs font-label font-medium text-amber-500 uppercase tracking-widest">STM</span>
+</div>
+<div class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20">
+<div class="w-2 h-2 rounded-full bg-blue-500"></div>
+<span class="text-xs font-label font-medium text-blue-500 uppercase tracking-widest">MTM</span>
+</div>
+<div class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
+<div class="w-2 h-2 rounded-full bg-emerald-500"></div>
+<span class="text-xs font-label font-medium text-emerald-500 uppercase tracking-widest">LTM</span>
+</div>
+</div>
+<!-- Tab Navigation -->
+<nav class="flex gap-8 border-b border-white/5">
+<button class="pb-3 text-sm font-label font-medium text-primary border-b-2 border-primary transition-all">All</button>
+<button class="pb-3 text-sm font-label font-medium text-on-surface-variant hover:text-on-surface transition-all">People</button>
+<button class="pb-3 text-sm font-label font-medium text-on-surface-variant hover:text-on-surface transition-all">Places</button>
+<button class="pb-3 text-sm font-label font-medium text-on-surface-variant hover:text-on-surface transition-all">Patterns</button>
+</nav>
+</div>
+<!-- Content Area -->
+<div class="flex-1 overflow-y-auto px-6 pt-4 pb-24 no-scrollbar">
+<div class="flex flex-col gap-4">
+<!-- Card 1 -->
+<div class="group p-5 bg-surface-container-low rounded-lg flex items-center justify-between hover:bg-surface-container-high transition-all">
+<div class="flex items-center gap-4">
+<div class="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></div>
+<div class="flex flex-col">
+<span class="text-xs font-label text-on-surface-variant/60 tracking-wider">user.name</span>
+<span class="text-lg font-headline font-light text-on-surface">LTM: Ahmed</span>
+</div>
+</div>
+<button class="opacity-0 group-hover:opacity-100 p-2 rounded-full hover:bg-error/10 text-on-surface-variant hover:text-error transition-all">
+<span class="material-symbols-outlined text-[20px]">delete</span>
+</button>
+</div>
+<!-- Card 2 -->
+<div class="group p-5 bg-surface-container-low rounded-lg flex items-center justify-between hover:bg-surface-container-high transition-all">
+<div class="flex items-center gap-4">
+<div class="w-2.5 h-2.5 rounded-full bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.5)]"></div>
+<div class="flex flex-col">
+<span class="text-xs font-label text-on-surface-variant/60 tracking-wider">user.location</span>
+<span class="text-lg font-headline font-light text-on-surface">LTM: Dubai</span>
+</div>
+</div>
+<button class="opacity-0 group-hover:opacity-100 p-2 rounded-full hover:bg-error/10 text-on-surface-variant hover:text-error transition-all">
+<span class="material-symbols-outlined text-[20px]">delete</span>
+</button>
+</div>
+<!-- Extra Contextual Visual (Bento-style snippet) -->
+<div class="grid grid-cols-2 gap-4 mt-4">
+<div class="aspect-square rounded-lg overflow-hidden relative">
+<img class="w-full h-full object-cover opacity-60" data-alt="Modern collaborative workspace with glass walls and warm interior lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBQOHwzygzauUXeqr_5kVJ3swWmeErVqWxLgj6g1Y4Cdnw7vf1tcKoFkoAe79AZNDpAOdKFEPCa8RwFz2KkiIn7Kw3F4wC0gx4pdfJd-1dDTke_Gwmq_TTeD6sWNmSKayUkPthqRczsaf6fltvHRkZw75_eFXKAtrVJuodrUOm8bxOBZ9sWpXXEuK_G-dLLRQDpnSXK2eGWXi28K8h6ySwDHY9eIcV9CA0Hy-z0xYIdGC9P-ILDKiPdXqvHAL56JDmqPVnYfg3Iu1Wy"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface to-transparent"></div>
+<div class="absolute bottom-3 left-3">
+<span class="text-[10px] text-primary uppercase font-black tracking-widest">Linked Context</span>
+<p class="text-xs text-white/80">Workshop Session</p>
+</div>
+</div>
+<div class="aspect-square rounded-lg bg-surface-container flex flex-col items-center justify-center p-4 border border-white/5">
+<span class="material-symbols-outlined text-primary-dim text-4xl mb-2" data-weight="fill">insights</span>
+<p class="text-[10px] text-center text-on-surface-variant tracking-wide uppercase">Audit Insight</p>
+<p class="text-sm text-center text-on-surface mt-1">Memory retention is up by 12% this week.</p>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Bottom Nav Bar (As specified in JSON) -->
+<nav class="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-md h-16 rounded-full border border-white/15 bg-white/10 backdrop-blur-3xl flex justify-between items-center px-6 z-50 shadow-[0_20px_50px_rgba(172,163,255,0.08)]">
+<button class="text-white/60 p-3 hover:bg-white/5 transition-all duration-300 scale-95 active:scale-90">
+<span class="material-symbols-outlined">search</span>
+</button>
+<button class="text-white/60 p-3 hover:bg-white/5 transition-all duration-300 scale-95 active:scale-90">
+<span class="material-symbols-outlined">mic</span>
+</button>
+<button class="bg-[#ACA3FF]/20 text-[#ACA3FF] rounded-full p-3 hover:bg-white/5 transition-all duration-300 scale-95 active:scale-90">
+<span class="material-symbols-outlined">apps</span>
+</button>
+</nav>
+<!-- Screen Shade -->
+<div class="fixed inset-0 bg-surface/80 z-0"></div>
+</body></html>
