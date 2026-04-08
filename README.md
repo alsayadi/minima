@@ -1,5 +1,9 @@
 # Minima OS
 
+<p align="center">
+  <img src="docs/intro.gif" alt="Minima OS intro" width="320" />
+</p>
+
 An AI-first Android launcher. No app grid. No home screen. Just a clock, a command bar, a memory, and a voice.
 
 You tell Minima what you want in natural language — "text Sarah I'm running late", "remind me to call mom at 6", "weather in Dubai", "turn on the flashlight", "schedule meeting with Ali tomorrow" — and it figures out the intent, executes the task, and remembers anything worth remembering.
@@ -21,7 +25,7 @@ Tap the mic to go hands-free: Minima listens, executes, and speaks the result ba
 
 ## Screenshots
 
-_Coming soon_
+See the intro above, or browse `docs/` for full-resolution stills.
 
 ## Architecture
 
