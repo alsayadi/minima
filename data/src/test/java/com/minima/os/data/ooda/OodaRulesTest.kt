@@ -1,6 +1,7 @@
 package com.minima.os.data.ooda
 
 import com.minima.os.data.entity.TaskOutcomeEntity
+import com.minima.os.data.entity.TuningChangeEntity
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
@@ -159,6 +160,25 @@ class OodaRulesTest {
         assertNotNull(d)
         assertEquals("time_slot_1", d!!.param)
         assertTrue(d.problem.contains("4:00-7:59"))
+    }
+
+    @Test fun `rule 11 — oscillating param is skipped`() {
+        // Voice clearly failing; would normally trigger Rule 1. But voice_timeout_ms has been
+        // flip-flopping in the last 6 batches (3 times), so Rule 11 blocks it.
+        val outcomes = (1..15).map { outcome(voice = true, success = it % 3 != 0) } +
+                       (1..20).map { outcome(voice = false, success = true) }
+        val churn = List(3) {
+            TuningChangeEntity(
+                batchId = (10 - it).toLong(),
+                param = "voice_timeout_ms",
+                previousValue = "3000", proposedValue = "3500",
+                reason = "churn", suggestion = "bump",
+                applied = true
+            )
+        }
+        val d = OodaEngine.Rules.diagnosePure(stats(outcomes), outcomes, defaultApplied(), churn)
+        // Should skip voice_timeout_ms, return null (no other rule fires on this data)
+        assertNull("Rule 11 must skip oscillating voice_timeout_ms", d)
     }
 
     @Test fun `rule 10 — arabic in failed voice commands triggers locale hint`() {

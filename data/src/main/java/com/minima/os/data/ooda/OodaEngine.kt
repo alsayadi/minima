@@ -199,11 +199,21 @@ class OodaEngine @Inject constructor(
         fun diagnosePure(
             stats: BatchStats,
             outcomes: List<TaskOutcomeEntity>,
-            appliedValues: Map<String, String>
+            appliedValues: Map<String, String>,
+            /** Recent tuning history (newest first). Drives Rule 11 — anti-oscillation. */
+            recentChanges: List<TuningChangeEntity> = emptyList()
         ): Diagnosis? {
+            // Rule 11 (priority 0): don't re-propose a param that's been flip-flopping.
+            // If within the last 4 applied+rollback rows the same param appeared ≥3 times,
+            // it's oscillating — skip it for this batch.
+            val oscillating = recentChanges.take(6)
+                .groupBy { it.param }
+                .filter { it.value.size >= 3 }
+                .keys
             // Rule 1: voice bucket failing hard
             val voiceBucket = stats.byVoiceText["voice"]
-            if (voiceBucket != null && voiceBucket.count >= 10 && voiceBucket.successRate < 0.75) {
+            if (voiceBucket != null && voiceBucket.count >= 10 && voiceBucket.successRate < 0.75
+                && "voice_timeout_ms" !in oscillating) {
                 val currentTimeout = appliedValues["voice_timeout_ms"]?.toIntOrNull() ?: 3000
                 val proposed = (currentTimeout + 500).coerceAtMost(5000)
                 return Diagnosis(
@@ -262,7 +272,7 @@ class OodaEngine @Inject constructor(
             }
             // Rule 5: low confidence — bump temperature
             val lowConf = outcomes.count { it.confidence == "LOW" }.toDouble() / outcomes.size.coerceAtLeast(1)
-            if (lowConf > 0.30) {
+            if (lowConf > 0.30 && "temperature" !in oscillating) {
                 val t = appliedValues["temperature"]?.toDoubleOrNull() ?: 0.3
                 val proposed = (t + 0.1).coerceIn(0.1, 0.7)
                 if (kotlin.math.abs(proposed - t) > 0.001) {
@@ -277,7 +287,8 @@ class OodaEngine @Inject constructor(
             }
             // Rule 6: system stable — drop temperature
             val highConf = outcomes.count { it.confidence == "HIGH" }.toDouble() / outcomes.size.coerceAtLeast(1)
-            if (highConf > 0.90 && stats.avgTotalMs < 3000 && stats.successRate > 0.95) {
+            if (highConf > 0.90 && stats.avgTotalMs < 3000 && stats.successRate > 0.95
+                && "temperature" !in oscillating) {
                 val t = appliedValues["temperature"]?.toDoubleOrNull() ?: 0.3
                 val proposed = (t - 0.1).coerceIn(0.1, 0.7)
                 if (kotlin.math.abs(proposed - t) > 0.001 && t > 0.15) {
@@ -537,7 +548,7 @@ class OodaEngine @Inject constructor(
      * Thresholds are tuned for Minima's context (phone launcher, ~dozens of tasks/day).
      */
     /** Instance wrapper — captures current applied values from prefs then delegates to the pure function. */
-    internal fun diagnose(stats: BatchStats, outcomes: List<TaskOutcomeEntity>): Diagnosis? {
+    internal suspend fun diagnose(stats: BatchStats, outcomes: List<TaskOutcomeEntity>): Diagnosis? {
         val applied = mapOf(
             "voice_timeout_ms" to (prefs.getString(KEY_APPLIED_PREFIX + "voice_timeout_ms", "3000") ?: "3000"),
             "temperature" to (prefs.getString(KEY_APPLIED_PREFIX + "temperature", "0.3") ?: "0.3"),
@@ -546,7 +557,8 @@ class OodaEngine @Inject constructor(
                 "GET_WEATHER,CREATE_CALENDAR_EVENT,FLASHLIGHT,SET_ALARM,OPEN_CAMERA,MUSIC_CONTROL"
             ) ?: "")
         )
-        return Rules.diagnosePure(stats, outcomes, applied)
+        val recent = runCatching { changeDao.getRecent(10) }.getOrDefault(emptyList())
+        return Rules.diagnosePure(stats, outcomes, applied, recent)
     }
 
     /** For the dashboard — fast summary of recent state. */

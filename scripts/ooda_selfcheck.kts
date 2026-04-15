@@ -47,10 +47,19 @@ fun stats(outcomes: List<TaskOutcome>) = BatchStats(
 )
 
 // Port of OodaEngine.Rules.diagnosePure — priority ordered
-fun diagnose(s: BatchStats, o: List<TaskOutcome>, applied: Map<String, String>): Diagnosis? {
+fun diagnose(
+    s: BatchStats,
+    o: List<TaskOutcome>,
+    applied: Map<String, String>,
+    recentChangeParams: List<String> = emptyList()
+): Diagnosis? {
+    // 0 (Rule 11): anti-oscillation — skip params that have churned ≥3× in recent 6 changes
+    val oscillating = recentChangeParams.take(6).groupingBy { it }.eachCount()
+        .filter { it.value >= 3 }.keys
+
     // 1. voice failure
     val v = s.byVoiceText["voice"]
-    if (v != null && v.count >= 10 && v.successRate < 0.75) {
+    if (v != null && v.count >= 10 && v.successRate < 0.75 && "voice_timeout_ms" !in oscillating) {
         val cur = applied["voice_timeout_ms"]?.toIntOrNull() ?: 3000
         val prop = (cur + 500).coerceAtMost(5000)
         return Diagnosis(
@@ -296,9 +305,20 @@ run {
         "got ${d?.param}=${d?.proposedValue}")
 }
 
+// Test 13: anti-oscillation — Rule 11 blocks flip-flopping param
+run {
+    val o = (1..15).map { TaskOutcome("ANSWER", "HIGH", "OPENAI", true, it % 3 != 0) } +
+            (1..20).map { TaskOutcome("ANSWER", "HIGH", "OPENAI", false, true) }
+    val churn = listOf("voice_timeout_ms", "voice_timeout_ms", "voice_timeout_ms")
+    val d = diagnose(stats(o), o, defaultApplied(), churn)
+    check("oscillation → Rule 11 blocks voice_timeout_ms",
+        d == null,
+        "got ${d?.param}")
+}
+
 println("=====================")
 if (failed == 0) {
-    println("✅  All 12 rule tests passed — OODA diagnose engine verified")
+    println("✅  All 13 rule tests passed — OODA diagnose engine verified")
     kotlin.system.exitProcess(0)
 } else {
     println("❌  $failed test(s) failed")
