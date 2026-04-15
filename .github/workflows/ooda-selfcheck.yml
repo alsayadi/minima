@@ -27,4 +27,4 @@ jobs:
           echo "$PWD/kotlinc/bin" >> $GITHUB_PATH
 
       - name: Run OODA rule self-check
-        run: sh kotlinc/bin/kotlinc -script scripts/ooda_selfcheck.kts
+        run: bash kotlinc/bin/kotlinc -script scripts/ooda_selfcheck.kts
