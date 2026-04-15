@@ -128,8 +128,10 @@ class OodaRulesTest {
     }
 
     @Test fun `rule 4 — slow intent appends to skip list`() {
-        val outcomes = (1..10).map { outcome(intent = "ANSWER", totalMs = 8000) } +  // avg 8s
-                       (1..20).map { outcome(totalMs = 1500) }
+        // Rule 4 fires only when batch avg > 6000ms AND that intent's avg > 5000ms.
+        // Weight ANSWER heavily enough that the aggregate crosses 6000ms.
+        val outcomes = (1..25).map { outcome(intent = "ANSWER", totalMs = 8000) } +
+                       (1..10).map { outcome(intent = "FLASHLIGHT", totalMs = 1500) }
         val d = OodaEngine.Rules.diagnosePure(stats(outcomes), outcomes, defaultApplied())
         assertNotNull(d)
         assertEquals("llm_rewrite_skip_intents", d!!.param)
