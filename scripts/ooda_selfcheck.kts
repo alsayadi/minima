@@ -8,7 +8,10 @@ data class TaskOutcome(
     val provider: String,
     val voiceInitiated: Boolean,
     val success: Boolean,
-    val totalMs: Long = 2000
+    val totalMs: Long = 2000,
+    val hourOfDay: Int = 12,
+    val command: String = "cmd",
+    val errorMessage: String? = null
 )
 
 data class BucketStats(val count: Int, val successRate: Double, val avgMs: Long)
@@ -113,6 +116,42 @@ fun diagnose(s: BatchStats, o: List<TaskOutcome>, applied: Map<String, String>):
                 "temperature", "%.1f".format(t), "%.1f".format(p)
             )
         }
+    }
+    // 8. error clustering
+    val failures = o.filter { !it.success && !it.errorMessage.isNullOrBlank() }
+    if (failures.size >= 5) {
+        val byPrefix = failures.groupBy { it.errorMessage!!.split(" ", limit = 2).first().lowercase() }
+        val worst = byPrefix.maxByOrNull { it.value.size }
+        if (worst != null && worst.value.size.toDouble() / failures.size >= 0.40) {
+            return Diagnosis(
+                "${worst.value.size}/${failures.size} fail with '${worst.key}'",
+                "investigate cluster",
+                "error_cluster_${worst.key}", "uninvestigated", "investigate"
+            )
+        }
+    }
+    // 9. time-of-day regression
+    val byHour = o.groupBy { it.hourOfDay / 4 }
+        .filter { it.value.size >= 5 }
+        .mapValues { (_, rows) -> rows.count { it.success }.toDouble() / rows.size }
+    if (byHour.size >= 2) {
+        val worstSlot = byHour.minByOrNull { it.value }!!
+        val others = byHour.filter { it.key != worstSlot.key }.values.average()
+        if (others - worstSlot.value > 0.20) {
+            return Diagnosis(
+                "slot ${worstSlot.key} bad", "investigate",
+                "time_slot_${worstSlot.key}", "baseline", "regression"
+            )
+        }
+    }
+    // 10. RTL in failed voice commands
+    val arabic = Regex("[\\u0600-\\u06FF\\u0750-\\u077F]")
+    val rtl = o.count { it.voiceInitiated && !it.success && arabic.containsMatchIn(it.command) }
+    if (rtl >= 3) {
+        return Diagnosis(
+            "$rtl RTL voice fails", "bilingual STT",
+            "stt_language_hint", "en-US", "ar-multilang"
+        )
     }
     return null
 }
@@ -222,9 +261,44 @@ run {
         "got ${d?.param}=${d?.proposedValue}")
 }
 
+// Test 10: error clustering
+run {
+    val o = (1..30).map { TaskOutcome("ANSWER", "HIGH", "OPENAI", false, true) } +
+            (1..5).map { TaskOutcome("ANSWER", "HIGH", "OPENAI", false, false,
+                errorMessage = "Network timeout") } +
+            (1..3).map { TaskOutcome("ANSWER", "HIGH", "OPENAI", false, false,
+                errorMessage = "Parse error") }
+    val d = diagnose(stats(o), o, defaultApplied())
+    check("error clustering → Rule 8 (network)",
+        d != null && d.param == "error_cluster_network",
+        "got ${d?.param}")
+}
+
+// Test 11: time-of-day regression
+run {
+    val o = (1..10).map { TaskOutcome("ANSWER", "HIGH", "OPENAI", false, it > 7, hourOfDay = 7) } +
+            (1..10).map { TaskOutcome("ANSWER", "HIGH", "OPENAI", false, true, hourOfDay = 14) } +
+            (1..10).map { TaskOutcome("ANSWER", "HIGH", "OPENAI", false, true, hourOfDay = 20) }
+    val d = diagnose(stats(o), o, defaultApplied())
+    check("time-of-day regression → Rule 9 (slot 1)",
+        d != null && d.param == "time_slot_1",
+        "got ${d?.param}")
+}
+
+// Test 12: Arabic RTL in failed voice
+run {
+    val o = (1..20).map { TaskOutcome("ANSWER", "HIGH", "OPENAI", false, true) } +
+            (1..4).map { TaskOutcome("ANSWER", "HIGH", "OPENAI", true, false,
+                command = "افتح الكاميرا") }
+    val d = diagnose(stats(o), o, defaultApplied())
+    check("Arabic voice fail → Rule 10 (locale hint)",
+        d != null && d.param == "stt_language_hint" && d.proposedValue == "ar-multilang",
+        "got ${d?.param}=${d?.proposedValue}")
+}
+
 println("=====================")
 if (failed == 0) {
-    println("✅  All 9 rule tests passed — OODA diagnose engine verified")
+    println("✅  All 12 rule tests passed — OODA diagnose engine verified")
     kotlin.system.exitProcess(0)
 } else {
     println("❌  $failed test(s) failed")

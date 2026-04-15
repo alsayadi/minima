@@ -316,6 +316,66 @@ class OodaEngine @Inject constructor(
                     )
                 }
             }
+
+            // Rule 8: error-message clustering — if ≥40% of failures share an error prefix, surface it
+            val failures = outcomes.filter { !it.success && !it.errorMessage.isNullOrBlank() }
+            if (failures.size >= 5) {
+                val byPrefix = failures.groupBy { it.errorMessage!!.split(" ", limit = 2).first().lowercase() }
+                val worstCluster = byPrefix.maxByOrNull { it.value.size }
+                if (worstCluster != null && worstCluster.value.size.toDouble() / failures.size >= 0.40) {
+                    val suggestion = when (worstCluster.key) {
+                        "network", "timeout", "connection", "unable" -> "Enable offline fallback; disable conversation mode"
+                        "mic", "permission" -> "Prompt user to re-grant permissions"
+                        "parse", "invalid" -> "Tighten LLM prompt / add examples"
+                        else -> "Investigate '${worstCluster.key}' error cluster"
+                    }
+                    return Diagnosis(
+                        problem = "${worstCluster.value.size}/${failures.size} failures start with '${worstCluster.key}'",
+                        suggestion = suggestion,
+                        param = "error_cluster_${worstCluster.key}",
+                        previousValue = "uninvestigated",
+                        proposedValue = "investigate"
+                    )
+                }
+            }
+
+            // Rule 9: time-of-day regression — if one 4-hour bucket is much worse than the rest
+            val byHour = outcomes.groupBy { it.hourOfDay / 4 }  // 0..5 = six 4-hour buckets
+                .filter { it.value.size >= 5 }
+                .mapValues { (_, rows) ->
+                    rows.count { it.success }.toDouble() / rows.size
+                }
+            if (byHour.size >= 2) {
+                val worstSlot = byHour.minByOrNull { it.value }!!
+                val othersAvg = byHour.filter { it.key != worstSlot.key }
+                    .values.average()
+                if (othersAvg - worstSlot.value > 0.20) {
+                    val slotRange = "${worstSlot.key * 4}:00-${worstSlot.key * 4 + 3}:59"
+                    return Diagnosis(
+                        problem = "Hour slot $slotRange succeeds ${(worstSlot.value * 100).toInt()}% vs ${(othersAvg * 100).toInt()}% elsewhere",
+                        suggestion = "Investigate context for that time window (commute? network quality?)",
+                        param = "time_slot_${worstSlot.key}",
+                        previousValue = "baseline",
+                        proposedValue = "regression"
+                    )
+                }
+            }
+
+            // Rule 10: RTL script detected in failed voice commands — propose locale switch hint
+            val arabicRegex = Regex("[\\u0600-\\u06FF\\u0750-\\u077F]")  // Arabic + Arabic Supplement
+            val rtlFailures = outcomes.count {
+                it.voiceInitiated && !it.success && arabicRegex.containsMatchIn(it.command)
+            }
+            if (rtlFailures >= 3) {
+                return Diagnosis(
+                    problem = "$rtlFailures voice commands contain Arabic but failed",
+                    suggestion = "Offer bilingual STT — set recognizer language to 'ar' or dual-locale",
+                    param = "stt_language_hint",
+                    previousValue = "en-US",
+                    proposedValue = "ar-multilang"
+                )
+            }
+
             return null
         }
     }

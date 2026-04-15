@@ -138,6 +138,41 @@ class OodaRulesTest {
         assertTrue(d.proposedValue.contains("ANSWER"))
     }
 
+    @Test fun `rule 8 — error-message clustering surfaces worst cluster`() {
+        // 5 network failures + 3 other failures + 30 successes → 5/8 share 'network' prefix
+        val outcomes = (1..30).map { outcome() } +
+                       (1..5).map { outcome(success = false).copy(errorMessage = "Network timeout on port 443") } +
+                       (1..3).map { outcome(success = false).copy(errorMessage = "Parse error in JSON response") }
+        val d = OodaEngine.Rules.diagnosePure(stats(outcomes), outcomes, defaultApplied())
+        assertNotNull(d)
+        assertEquals("error_cluster_network", d!!.param)
+        assertTrue(d.problem.contains("network"))
+    }
+
+    @Test fun `rule 9 — time-of-day regression`() {
+        // Morning commute window (6-9am) fails a lot; rest of day is fine
+        val morning = (1..10).map { outcome(success = it > 7).copy(hourOfDay = 7) }   // 30% success
+        val rest = (1..10).map { outcome().copy(hourOfDay = 14) } +                     // 100%
+                   (1..10).map { outcome().copy(hourOfDay = 20) }                        // 100%
+        val outcomes = morning + rest
+        val d = OodaEngine.Rules.diagnosePure(stats(outcomes), outcomes, defaultApplied())
+        assertNotNull(d)
+        assertEquals("time_slot_1", d!!.param)
+        assertTrue(d.problem.contains("4:00-7:59"))
+    }
+
+    @Test fun `rule 10 — arabic in failed voice commands triggers locale hint`() {
+        val outcomes = (1..20).map { outcome() } +
+                       (1..4).map {
+                           outcome(voice = true, success = false)
+                               .copy(command = "افتح الكاميرا")  // "open camera" in Arabic
+                       }
+        val d = OodaEngine.Rules.diagnosePure(stats(outcomes), outcomes, defaultApplied())
+        assertNotNull(d)
+        assertEquals("stt_language_hint", d!!.param)
+        assertEquals("ar-multilang", d.proposedValue)
+    }
+
     private fun defaultApplied(): Map<String, String> = mapOf(
         "voice_timeout_ms" to "3000",
         "temperature" to "0.3",
