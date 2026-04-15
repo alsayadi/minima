@@ -8,8 +8,11 @@ import com.minima.os.data.memory.MemoryManager
 import com.minima.os.agent.planner.Planner
 import com.minima.os.core.executor.CapabilityExecutor
 import com.minima.os.core.model.*
+import com.minima.os.data.dao.OutcomeDao
 import com.minima.os.data.dao.TaskDao
 import com.minima.os.data.entity.TaskEntity
+import com.minima.os.data.entity.TaskOutcomeEntity
+import com.minima.os.data.ooda.OodaEngine
 import com.minima.os.model.router.ModelRouter
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -30,8 +33,13 @@ class TaskExecutor @Inject constructor(
     private val taskDao: TaskDao,
     private val modelRouter: ModelRouter,
     private val memoryManager: MemoryManager,
-    private val memoryExtractor: MemoryExtractor
+    private val memoryExtractor: MemoryExtractor,
+    private val outcomeDao: OutcomeDao,
+    private val oodaEngine: OodaEngine
 ) {
+
+    /** Set by LauncherViewModel before calling execute() to tag the outcome. */
+    @Volatile var nextTaskIsVoiceInitiated: Boolean = false
 
     private val json = Json { ignoreUnknownKeys = true }
     private val _currentTask = MutableStateFlow<Task?>(null)
@@ -41,6 +49,11 @@ class TaskExecutor @Inject constructor(
     val taskHistory: StateFlow<List<Task>> = _taskHistory.asStateFlow()
 
     suspend fun execute(input: String): Task {
+        val execStart = System.currentTimeMillis()
+        val isVoice = nextTaskIsVoiceInitiated
+        nextTaskIsVoiceInitiated = false  // consume the flag
+        var classifyMs = 0L
+        var classifyStart = 0L
         val taskId = UUID.randomUUID().toString()
         var task = Task(id = taskId, input = input)
         updateTask(task)
@@ -63,6 +76,7 @@ class TaskExecutor @Inject constructor(
             updateTask(task)
 
             var intent: ClassifiedIntent
+            classifyStart = System.currentTimeMillis()
 
             // Try AI (GPT-4o) first — smarter, more flexible
             try {
@@ -99,6 +113,7 @@ class TaskExecutor @Inject constructor(
                 )
             }
 
+            classifyMs = System.currentTimeMillis() - classifyStart
             task = task.copy(intent = intent, updatedAt = now())
 
             // Plan
@@ -214,6 +229,7 @@ class TaskExecutor @Inject constructor(
                 android.util.Log.w("TaskExecutor", "Memory extraction failed: ${e.message}")
             }
 
+            logOutcome(task, execStart, classifyMs, isVoice)
             return task
 
         } catch (e: Exception) {
@@ -223,7 +239,39 @@ class TaskExecutor @Inject constructor(
                 updatedAt = now()
             )
             updateTask(task)
+            logOutcome(task, execStart, classifyMs, isVoice)
             return task
+        }
+    }
+
+    private suspend fun logOutcome(task: Task, execStart: Long, classifyMs: Long, isVoice: Boolean) {
+        try {
+            val total = System.currentTimeMillis() - execStart
+            val cal = java.util.Calendar.getInstance()
+            outcomeDao.insert(
+                TaskOutcomeEntity(
+                    taskId = task.id,
+                    command = task.input.take(300),
+                    intent = task.intent?.type?.name ?: "UNKNOWN",
+                    confidence = task.intent?.confidence?.name ?: "LOW",
+                    provider = runCatching { modelRouter.currentProviderName() }.getOrDefault("NONE"),
+                    model = runCatching { modelRouter.currentModelName() }.getOrDefault(""),
+                    classificationMs = classifyMs,
+                    executionMs = (total - classifyMs).coerceAtLeast(0),
+                    totalMs = total,
+                    success = task.state == TaskState.COMPLETED,
+                    voiceInitiated = isVoice,
+                    llmFallbackUsed = task.intent?.confidence == Confidence.LOW,
+                    hourOfDay = cal.get(java.util.Calendar.HOUR_OF_DAY),
+                    dayOfWeek = cal.get(java.util.Calendar.DAY_OF_WEEK),
+                    errorMessage = task.error?.take(300)
+                )
+            )
+            // Fire the batch trigger (count-based)
+            runCatching { oodaEngine.maybeRunBatch() }
+                .onFailure { android.util.Log.w("TaskExecutor", "OODA batch failed: ${it.message}") }
+        } catch (e: Exception) {
+            android.util.Log.w("TaskExecutor", "Outcome log failed: ${e.message}")
         }
     }
 

@@ -149,6 +149,7 @@ class LauncherViewModel @Inject constructor(
                 )
                 speakNextResult = true
                 conversationMode = true
+                taskExecutor.nextTaskIsVoiceInitiated = true
                 // Instant acknowledgment while LLM thinks
                 vm.speakFiller("one sec")
                 onSubmitCommand()

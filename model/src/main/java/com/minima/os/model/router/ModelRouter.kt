@@ -47,6 +47,10 @@ class ModelRouter @Inject constructor(
         return cloudProvider
     }
 
+    fun currentProviderName(): String = cloudProvider.currentProvider().name
+
+    fun currentModelName(): String = cloudProvider.currentModel()
+
     private enum class Operation {
         CLASSIFY,
         DRAFT,

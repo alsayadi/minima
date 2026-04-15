@@ -27,4 +27,10 @@ object AppModule {
 
     @Provides
     fun provideMemoryDao(db: MinimaDatabase) = db.memoryDao()
+
+    @Provides
+    fun provideOutcomeDao(db: MinimaDatabase) = db.outcomeDao()
+
+    @Provides
+    fun provideTuningChangeDao(db: MinimaDatabase) = db.tuningChangeDao()
 }
