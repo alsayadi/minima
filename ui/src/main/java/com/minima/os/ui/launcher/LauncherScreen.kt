@@ -185,6 +185,12 @@ fun LauncherScreen(
             }
 
             // Command bar (full width, pinned at bottom)
+            val haptics = androidx.compose.ui.platform.LocalHapticFeedback.current
+            val voiceRms by viewModel.voiceRms.collectAsState()
+            val hapticTick by viewModel.hapticTick.collectAsState()
+            LaunchedEffect(hapticTick) {
+                if (hapticTick > 0) haptics.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.TextHandleMove)
+            }
             CommandBar(
                 text = uiState.commandText,
                 onTextChange = viewModel::onCommandTextChanged,
@@ -192,6 +198,7 @@ fun LauncherScreen(
                 isProcessing = uiState.isProcessing,
                 onAppsClick = { showAppDrawer = true },
                 onVoiceClick = {
+                    haptics.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
                     val ctx = micCtx
                     val granted = androidx.core.content.ContextCompat.checkSelfPermission(
                         ctx, android.Manifest.permission.RECORD_AUDIO
@@ -204,6 +211,7 @@ fun LauncherScreen(
                     }
                 },
                 isListening = uiState.isListening,
+                voiceRms = voiceRms,
                 modifier = Modifier.fillMaxWidth()
             )
             if (uiState.voiceStatus.isNotBlank()) {

@@ -9,6 +9,9 @@ import android.speech.SpeechRecognizer
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
 import java.util.Locale
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 
 /**
  * Wraps Android SpeechRecognizer (STT) + TextToSpeech (TTS).
@@ -30,6 +33,10 @@ class VoiceManager(private val context: Context) {
     private var ttsReady = false
     private var isListening = false
     private var onSpeakDone: (() -> Unit)? = null
+
+    /** Normalized audio level (0..1) emitted while actively listening. UI subscribes for the waveform. */
+    private val _rmsLevel = MutableStateFlow(0f)
+    val rmsLevel: StateFlow<Float> = _rmsLevel.asStateFlow()
 
     fun ensureInit() {
         if (tts == null) {
@@ -75,11 +82,16 @@ class VoiceManager(private val context: Context) {
                 listener.onListeningStart()
             }
             override fun onBeginningOfSpeech() {}
-            override fun onRmsChanged(rmsdB: Float) {}
+            override fun onRmsChanged(rmsdB: Float) {
+                // Android SpeechRecognizer rmsdB is typically in [-2 .. 10] range
+                val normalized = ((rmsdB + 2f) / 12f).coerceIn(0f, 1f)
+                _rmsLevel.value = normalized
+            }
             override fun onBufferReceived(buffer: ByteArray?) {}
             override fun onEndOfSpeech() {}
             override fun onError(error: Int) {
                 isListening = false
+                _rmsLevel.value = 0f
                 listener.onError(errorMessage(error))
                 listener.onListeningEnd()
                 rec.destroy()
@@ -89,6 +101,7 @@ class VoiceManager(private val context: Context) {
                 val matches = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
                 val best = matches?.firstOrNull().orEmpty()
                 isListening = false
+                _rmsLevel.value = 0f
                 if (best.isNotBlank()) listener.onFinalText(best)
                 else listener.onError("Didn't catch that")
                 listener.onListeningEnd()
@@ -132,6 +145,7 @@ class VoiceManager(private val context: Context) {
         recognizer?.destroy()
         recognizer = null
         isListening = false
+        _rmsLevel.value = 0f
     }
 
     fun speak(text: String) {

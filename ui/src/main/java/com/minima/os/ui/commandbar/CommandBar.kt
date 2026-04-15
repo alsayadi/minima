@@ -38,6 +38,7 @@ fun CommandBar(
     onAppsClick: () -> Unit,
     onVoiceClick: () -> Unit = {},
     isListening: Boolean = false,
+    voiceRms: Float = 0f,
     modifier: Modifier = Modifier
 ) {
     Row(
@@ -70,36 +71,45 @@ fun CommandBar(
             }
         }
 
-        // Center: Text field
+        // Center: Text field OR live voice waveform while listening
         Box(
             modifier = Modifier
                 .weight(1f)
                 .padding(horizontal = 4.dp),
             contentAlignment = Alignment.CenterStart
         ) {
-            if (text.isEmpty() && !isProcessing) {
-                Text(
-                    text = "What do you need?",
-                    color = MinimaColors.onSurface.copy(alpha = 0.35f),
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Light,
-                    letterSpacing = 0.3.sp
+            if (isListening) {
+                com.minima.os.ui.voice.VoiceWaveform(
+                    rms = voiceRms,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(28.dp)
+                )
+            } else {
+                if (text.isEmpty() && !isProcessing) {
+                    Text(
+                        text = "What do you need?",
+                        color = MinimaColors.onSurface.copy(alpha = 0.35f),
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Light,
+                        letterSpacing = 0.3.sp
+                    )
+                }
+                BasicTextField(
+                    value = text,
+                    onValueChange = onTextChange,
+                    textStyle = TextStyle(
+                        color = MinimaColors.onSurface.copy(alpha = 0.90f),
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Normal
+                    ),
+                    cursorBrush = SolidColor(MinimaColors.primary),
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
+                    keyboardActions = KeyboardActions(onSend = { onSubmit() }),
+                    modifier = Modifier.fillMaxWidth()
                 )
             }
-            BasicTextField(
-                value = text,
-                onValueChange = onTextChange,
-                textStyle = TextStyle(
-                    color = MinimaColors.onSurface.copy(alpha = 0.90f),
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Normal
-                ),
-                cursorBrush = SolidColor(MinimaColors.primary),
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
-                keyboardActions = KeyboardActions(onSend = { onSubmit() }),
-                modifier = Modifier.fillMaxWidth()
-            )
         }
 
         // Right: Mic button (accent bg)

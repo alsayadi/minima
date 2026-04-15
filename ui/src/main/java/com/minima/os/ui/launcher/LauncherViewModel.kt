@@ -173,10 +173,21 @@ class LauncherViewModel @Inject constructor(
     private var speakNextResult = false
     private var conversationMode = false
 
+    private val _voiceRms = MutableStateFlow(0f)
+    val voiceRms: StateFlow<Float> = _voiceRms.asStateFlow()
+
+    /** Emits one bump per voice-result arrival — UI layer subscribes to fire a haptic. */
+    private val _hapticTick = MutableStateFlow(0)
+    val hapticTick: StateFlow<Int> = _hapticTick.asStateFlow()
+
     private fun ensureVoiceManager(): com.minima.os.ui.voice.VoiceManager {
         return voiceManager ?: com.minima.os.ui.voice.VoiceManager(context).also {
             voiceManager = it
             it.ensureInit()
+            // Pipe rms level into the viewmodel
+            viewModelScope.launch {
+                it.rmsLevel.collect { level -> _voiceRms.value = level }
+            }
         }
     }
 
