@@ -29,14 +29,56 @@ class OodaEngine @Inject constructor(
     private val changeDao: TuningChangeDao
 ) {
 
+    enum class ApplyMode { LOG_ONLY, AUTO_SAFE, HUMAN_QUEUE }
+
     companion object {
         private const val TAG = "OodaEngine"
         const val MIN_BATCH_SIZE = 30
         private const val PREFS = "minima_ooda"
         private const val KEY_LAST_BATCH_AT = "last_batch_at"
         private const val KEY_BATCH_ID = "batch_id"
-        // Apply modes: LOG_ONLY (default) | AUTO_SAFE | HUMAN_QUEUE
-        private const val KEY_APPLY_MODE = "apply_mode"
+        const val KEY_APPLY_MODE = "apply_mode"
+        const val KEY_APPLIED_PREFIX = "applied_"  // applied_voice_timeout_ms = "4500"
+
+        /** Params that are safe to auto-apply when in AUTO_SAFE mode. */
+        private val SAFE_PARAMS = setOf(
+            "voice_timeout_ms",
+            "provider_default",  // swap to a better-performing provider the user already has a key for
+        )
+
+        /** Params where we accept the proposal only if the delta is within range. */
+        private fun isSafeDelta(param: String, prev: String, next: String): Boolean = when (param) {
+            "voice_timeout_ms" -> {
+                val p = prev.toIntOrNull() ?: return false
+                val n = next.toIntOrNull() ?: return false
+                kotlin.math.abs(n - p) <= 1500  // max 1.5s jump per batch
+            }
+            "provider_default" -> prev != next && next.isNotBlank()
+            else -> false
+        }
+    }
+
+    fun applyMode(): ApplyMode {
+        val v = prefs.getString(KEY_APPLY_MODE, ApplyMode.LOG_ONLY.name) ?: return ApplyMode.LOG_ONLY
+        return runCatching { ApplyMode.valueOf(v) }.getOrDefault(ApplyMode.LOG_ONLY)
+    }
+
+    fun setApplyMode(mode: ApplyMode) {
+        prefs.edit().putString(KEY_APPLY_MODE, mode.name).apply()
+    }
+
+    /** Read the last-applied value for a param (null if never applied). */
+    fun appliedValue(param: String): String? =
+        prefs.getString(KEY_APPLIED_PREFIX + param, null)
+
+    /** Mark a proposal as applied: flip the row's flag, store the value for runtime lookup. */
+    suspend fun applyProposal(change: TuningChangeEntity) {
+        prefs.edit()
+            .putString(KEY_APPLIED_PREFIX + change.param, change.proposedValue)
+            .apply()
+        // Re-insert with applied=true so dashboard reflects it
+        changeDao.insert(change.copy(id = 0, applied = true, timestamp = System.currentTimeMillis()))
+        Log.i(TAG, "Applied ${change.param}: ${change.previousValue} -> ${change.proposedValue}")
     }
 
     private val prefs: SharedPreferences =
@@ -86,17 +128,26 @@ class OodaEngine @Inject constructor(
 
         if (diagnosis != null) {
             Log.i(TAG, "Batch $batchId diagnosis: ${diagnosis.problem} -> ${diagnosis.suggestion}")
-            changeDao.insert(
-                TuningChangeEntity(
-                    batchId = batchId,
-                    param = diagnosis.param,
-                    previousValue = diagnosis.previousValue,
-                    proposedValue = diagnosis.proposedValue,
-                    reason = diagnosis.problem,
-                    suggestion = diagnosis.suggestion,
-                    applied = false  // LOG_ONLY for now
-                )
+            val mode = applyMode()
+            val autoApply = mode == ApplyMode.AUTO_SAFE &&
+                diagnosis.param in SAFE_PARAMS &&
+                isSafeDelta(diagnosis.param, diagnosis.previousValue, diagnosis.proposedValue)
+            val row = TuningChangeEntity(
+                batchId = batchId,
+                param = diagnosis.param,
+                previousValue = diagnosis.previousValue,
+                proposedValue = diagnosis.proposedValue,
+                reason = diagnosis.problem,
+                suggestion = diagnosis.suggestion,
+                applied = autoApply
             )
+            changeDao.insert(row)
+            if (autoApply) {
+                prefs.edit()
+                    .putString(KEY_APPLIED_PREFIX + diagnosis.param, diagnosis.proposedValue)
+                    .apply()
+                Log.i(TAG, "AUTO_SAFE applied ${diagnosis.param}: ${diagnosis.previousValue} -> ${diagnosis.proposedValue}")
+            }
         }
 
         prefs.edit()

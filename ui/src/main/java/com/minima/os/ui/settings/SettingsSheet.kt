@@ -51,6 +51,8 @@ fun SettingsSheet(
         mutableStateOf(prefs.getString("llm_model_${selectedProvider.name}", "") ?: "")
     }
     var sensitivity by remember { mutableStateOf(prefs.getString("sensitivity", "NORMAL") ?: "NORMAL") }
+    val oodaPrefs = context.getSharedPreferences("minima_ooda", Context.MODE_PRIVATE)
+    var applyMode by remember { mutableStateOf(oodaPrefs.getString("apply_mode", "LOG_ONLY") ?: "LOG_ONLY") }
 
     Box(modifier = Modifier.fillMaxSize()) {
         // Scrim
@@ -287,6 +289,59 @@ fun SettingsSheet(
                 lineHeight = 15.sp
             )
 
+            Spacer(modifier = Modifier.height(20.dp))
+
+            // Auto-tune (OODA loop) mode
+            Text(
+                text = "Auto-tune",
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                listOf(
+                    "LOG_ONLY" to "Log only",
+                    "AUTO_SAFE" to "Auto-safe",
+                    "HUMAN_QUEUE" to "Ask me"
+                ).forEach { (value, label) ->
+                    val isSel = applyMode == value
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(
+                                if (isSel) Color(0xFF7C6FED).copy(alpha = 0.22f)
+                                else MaterialTheme.colorScheme.surfaceVariant
+                            )
+                            .clickable { applyMode = value }
+                            .padding(vertical = 10.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            label,
+                            fontSize = 12.sp,
+                            fontWeight = if (isSel) FontWeight.SemiBold else FontWeight.Normal,
+                            color = if (isSel) Color(0xFF7C6FED) else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = when (applyMode) {
+                    "AUTO_SAFE" -> "Auto-apply small, safe parameter changes (voice timeout, provider swap if key exists)."
+                    "HUMAN_QUEUE" -> "Show proposals in Auto-tune dashboard; you approve each one."
+                    else -> "Observe only. Proposals logged; no changes applied."
+                },
+                fontSize = 11.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                lineHeight = 15.sp
+            )
+
             Spacer(modifier = Modifier.height(24.dp))
 
             // Save button
@@ -304,6 +359,7 @@ fun SettingsSheet(
                             }
                         }
                         .apply()
+                    oodaPrefs.edit().putString("apply_mode", applyMode).apply()
                     onApiKeySaved(apiKey.trim())
                     onSensitivityChanged?.invoke(sensitivity)
                     Toast.makeText(context, "Settings saved — restart app to apply", Toast.LENGTH_LONG).show()

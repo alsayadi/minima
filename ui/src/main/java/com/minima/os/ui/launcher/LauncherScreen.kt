@@ -282,7 +282,9 @@ fun LauncherScreen(
             com.minima.os.ui.ooda.OodaDashboard(
                 summary = oodaSummary,
                 onRefresh = { viewModel.refreshOodaSummary() },
-                onDismiss = { showOoda = false }
+                onDismiss = { showOoda = false },
+                onApplyProposal = { viewModel.applyOodaProposal(it) },
+                onDismissProposal = { viewModel.dismissOodaProposal(it) }
             )
         }
 

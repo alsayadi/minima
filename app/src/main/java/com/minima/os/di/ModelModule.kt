@@ -23,11 +23,22 @@ object ModelModule {
 
     @Provides
     @Singleton
-    fun provideCloudModelProvider(prefs: SharedPreferences): CloudModelProvider {
+    fun provideCloudModelProvider(
+        prefs: SharedPreferences,
+        @ApplicationContext context: Context
+    ): CloudModelProvider {
         val cp = CloudModelProvider()
-        val providerName = prefs.getString("llm_provider", Provider.OPENAI.name) ?: Provider.OPENAI.name
+        val userChoice = prefs.getString("llm_provider", Provider.OPENAI.name) ?: Provider.OPENAI.name
+
+        // OODA override: if AUTO_SAFE applied a provider_default change AND the user has
+        // a key stored for that provider, honor it. Otherwise stick with the user's pick.
+        val oodaPrefs = context.getSharedPreferences("minima_ooda", Context.MODE_PRIVATE)
+        val oodaProvider = oodaPrefs.getString("applied_provider_default", null)
+        val providerName = if (oodaProvider != null &&
+            prefs.getString("api_key_$oodaProvider", null)?.isNotBlank() == true
+        ) oodaProvider else userChoice
+
         val selected = try { Provider.valueOf(providerName) } catch (_: Exception) { Provider.OPENAI }
-        // Per-provider key: api_key_OPENAI, api_key_GROQ, etc. Fallback to legacy openai_api_key.
         val key = prefs.getString("api_key_${selected.name}", null)
             ?: prefs.getString("openai_api_key", null)
         val model = prefs.getString("llm_model_${selected.name}", null)

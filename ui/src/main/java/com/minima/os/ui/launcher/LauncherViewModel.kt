@@ -76,6 +76,20 @@ class LauncherViewModel @Inject constructor(
         }
     }
 
+    fun applyOodaProposal(change: com.minima.os.data.entity.TuningChangeEntity) {
+        viewModelScope.launch {
+            try {
+                oodaEngine.applyProposal(change)
+                refreshOodaSummary()
+            } catch (_: Exception) {}
+        }
+    }
+
+    /** Dismiss = leave as proposal but hide locally (simple: just refresh — future: real dismiss flag). */
+    fun dismissOodaProposal(@Suppress("UNUSED_PARAMETER") change: com.minima.os.data.entity.TuningChangeEntity) {
+        refreshOodaSummary()
+    }
+
     private val _sensitivity = MutableStateFlow(ProactiveEngine.Sensitivity.NORMAL)
 
     init {

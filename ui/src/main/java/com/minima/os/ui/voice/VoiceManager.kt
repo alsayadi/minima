@@ -102,15 +102,22 @@ class VoiceManager(private val context: Context) {
             override fun onEvent(eventType: Int, params: Bundle?) {}
         })
 
+        // Honor OODA-tuned voice timeout (AUTO_SAFE mode) — fallback to default
+        val oodaPrefs = context.getSharedPreferences("minima_ooda", Context.MODE_PRIVATE)
+        val tunedTimeout = oodaPrefs.getString("applied_voice_timeout_ms", null)
+            ?.toLongOrNull()
+            ?.coerceIn(1500L, 6000L)
+            ?: 3000L
+
         val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
             putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
             putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault())
             putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
             putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1)
-            // Give the user time to finish speaking
-            putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS, 3000L)
-            putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 3000L)
-            putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, 3000L)
+            // Give the user time to finish speaking (OODA-tunable)
+            putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS, tunedTimeout)
+            putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, tunedTimeout)
+            putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, tunedTimeout)
         }
         try {
             rec.startListening(intent)

@@ -32,6 +32,8 @@ fun OodaDashboard(
     summary: OodaEngine.Summary?,
     onRefresh: () -> Unit,
     onDismiss: () -> Unit,
+    onApplyProposal: (TuningChangeEntity) -> Unit = {},
+    onDismissProposal: (TuningChangeEntity) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     LaunchedEffect(Unit) { onRefresh() }
@@ -125,7 +127,13 @@ fun OodaDashboard(
                             color = MinimaColors.onSurfaceVariant
                         )
                     } else {
-                        summary.recentChanges.forEach { ChangeRow(it) }
+                        summary.recentChanges.forEach {
+                            ChangeRow(
+                                it,
+                                onApply = { onApplyProposal(it) },
+                                onDismissRow = { onDismissProposal(it) }
+                            )
+                        }
                     }
                     Spacer(Modifier.height(24.dp))
                 }
@@ -201,7 +209,11 @@ private fun DimensionSection(title: String, buckets: Map<String, OodaEngine.Buck
 }
 
 @Composable
-private fun ChangeRow(c: TuningChangeEntity) {
+private fun ChangeRow(
+    c: TuningChangeEntity,
+    onApply: () -> Unit = {},
+    onDismissRow: () -> Unit = {}
+) {
     val fmt = remember { SimpleDateFormat("MMM d, HH:mm", Locale.getDefault()) }
     Column(
         modifier = Modifier
@@ -244,5 +256,28 @@ private fun ChangeRow(c: TuningChangeEntity) {
             fontSize = 10.sp,
             color = MinimaColors.onSurfaceVariant.copy(alpha = 0.6f)
         )
+        if (!c.applied) {
+            Spacer(Modifier.height(6.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(MinimaColors.primary.copy(alpha = 0.20f))
+                        .clickable { onApply() }
+                        .padding(horizontal = 12.dp, vertical = 6.dp)
+                ) {
+                    Text("Apply", fontSize = 11.sp, color = MinimaColors.primary, fontWeight = FontWeight.Medium)
+                }
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(MinimaColors.surfaceContainer)
+                        .clickable { onDismissRow() }
+                        .padding(horizontal = 12.dp, vertical = 6.dp)
+                ) {
+                    Text("Dismiss", fontSize = 11.sp, color = MinimaColors.onSurfaceVariant)
+                }
+            }
+        }
     }
 }
