@@ -190,6 +190,136 @@ class OodaEngine @Inject constructor(
         val proposedValue: String
     )
 
+    object Rules {
+        /**
+         * Pure diagnosis function — no Android deps, fully testable.
+         * Priority-ordered: first matching rule wins (one change per batch).
+         * @param appliedValues map of current values for tunable params (what runtime is using).
+         */
+        fun diagnosePure(
+            stats: BatchStats,
+            outcomes: List<TaskOutcomeEntity>,
+            appliedValues: Map<String, String>
+        ): Diagnosis? {
+            // Rule 1: voice bucket failing hard
+            val voiceBucket = stats.byVoiceText["voice"]
+            if (voiceBucket != null && voiceBucket.count >= 10 && voiceBucket.successRate < 0.75) {
+                val currentTimeout = appliedValues["voice_timeout_ms"]?.toIntOrNull() ?: 3000
+                val proposed = (currentTimeout + 500).coerceAtMost(5000)
+                return Diagnosis(
+                    problem = "Voice tasks succeed only ${(voiceBucket.successRate * 100).toInt()}% of the time",
+                    suggestion = "Extend STT silence tolerance; users need more pause",
+                    param = "voice_timeout_ms",
+                    previousValue = currentTimeout.toString(),
+                    proposedValue = proposed.toString()
+                )
+            }
+            // Rule 2: an intent has catastrophic failure rate
+            val worstIntent = stats.byIntent
+                .filter { it.value.count >= 5 }
+                .minByOrNull { it.value.successRate }
+            if (worstIntent != null && worstIntent.value.successRate < 0.60) {
+                return Diagnosis(
+                    problem = "Intent ${worstIntent.key} fails ${((1 - worstIntent.value.successRate) * 100).toInt()}% of the time (n=${worstIntent.value.count})",
+                    suggestion = "Review capability handler for ${worstIntent.key}; log errorMessage column for pattern",
+                    param = "intent_handler_${worstIntent.key}",
+                    previousValue = "current",
+                    proposedValue = "review"
+                )
+            }
+            // Rule 3: provider underperforms
+            val providerStats = stats.byProvider.filter { it.value.count >= 5 && it.key != "NONE" }
+            if (providerStats.size >= 2) {
+                val best = providerStats.maxByOrNull { it.value.successRate } ?: return null
+                val worst = providerStats.minByOrNull { it.value.successRate } ?: return null
+                if (best.value.successRate - worst.value.successRate > 0.20) {
+                    return Diagnosis(
+                        problem = "${worst.key} success rate ${(worst.value.successRate * 100).toInt()}% vs ${best.key} at ${(best.value.successRate * 100).toInt()}%",
+                        suggestion = "Route more traffic to ${best.key} as default",
+                        param = "provider_default",
+                        previousValue = worst.key,
+                        proposedValue = best.key
+                    )
+                }
+            }
+            // Rule 4: latency spike — extend skip list
+            if (stats.avgTotalMs > 6000) {
+                val slowest = stats.byIntent.filter { it.value.count >= 5 }.maxByOrNull { it.value.avgMs }
+                if (slowest != null && slowest.value.avgMs > 5000) {
+                    val currentSkip = appliedValues["llm_rewrite_skip_intents"] ?: ""
+                    val set = currentSkip.split(",").map { it.trim() }.filter { it.isNotEmpty() }.toMutableSet()
+                    if (slowest.key !in set) {
+                        set.add(slowest.key)
+                        return Diagnosis(
+                            problem = "Intent ${slowest.key} averages ${slowest.value.avgMs}ms (batch avg ${stats.avgTotalMs}ms)",
+                            suggestion = "Skip LLM rewrite for ${slowest.key}",
+                            param = "llm_rewrite_skip_intents",
+                            previousValue = currentSkip,
+                            proposedValue = set.joinToString(",")
+                        )
+                    }
+                }
+            }
+            // Rule 5: low confidence — bump temperature
+            val lowConf = outcomes.count { it.confidence == "LOW" }.toDouble() / outcomes.size.coerceAtLeast(1)
+            if (lowConf > 0.30) {
+                val t = appliedValues["temperature"]?.toDoubleOrNull() ?: 0.3
+                val proposed = (t + 0.1).coerceIn(0.1, 0.7)
+                if (kotlin.math.abs(proposed - t) > 0.001) {
+                    return Diagnosis(
+                        problem = "${(lowConf * 100).toInt()}% of classifications have LOW confidence",
+                        suggestion = "Nudge temperature up",
+                        param = "temperature",
+                        previousValue = String.format(java.util.Locale.US, "%.1f", t),
+                        proposedValue = String.format(java.util.Locale.US, "%.1f", proposed)
+                    )
+                }
+            }
+            // Rule 6: system stable — drop temperature
+            val highConf = outcomes.count { it.confidence == "HIGH" }.toDouble() / outcomes.size.coerceAtLeast(1)
+            if (highConf > 0.90 && stats.avgTotalMs < 3000 && stats.successRate > 0.95) {
+                val t = appliedValues["temperature"]?.toDoubleOrNull() ?: 0.3
+                val proposed = (t - 0.1).coerceIn(0.1, 0.7)
+                if (kotlin.math.abs(proposed - t) > 0.001 && t > 0.15) {
+                    return Diagnosis(
+                        problem = "${(highConf * 100).toInt()}% HIGH confidence, system is stable",
+                        suggestion = "Drop temperature for determinism",
+                        param = "temperature",
+                        previousValue = String.format(java.util.Locale.US, "%.1f", t),
+                        proposedValue = String.format(java.util.Locale.US, "%.1f", proposed)
+                    )
+                }
+            }
+            // Rule 7: slow voice intent → add to skip list
+            val voiceByIntent = outcomes.filter { it.voiceInitiated }
+                .groupBy { it.intent }
+                .mapValues { (_, rows) ->
+                    BucketStats(
+                        count = rows.size,
+                        successRate = rows.count { it.success }.toDouble() / rows.size,
+                        avgMs = rows.sumOf { it.totalMs } / rows.size.coerceAtLeast(1)
+                    )
+                }
+                .filter { it.value.count >= 5 && it.value.avgMs > 4000 }
+            val worstVoice = voiceByIntent.maxByOrNull { it.value.avgMs }
+            if (worstVoice != null) {
+                val currentSkip = appliedValues["llm_rewrite_skip_intents"] ?: ""
+                val set = currentSkip.split(",").map { it.trim() }.filter { it.isNotEmpty() }.toMutableSet()
+                if (worstVoice.key !in set) {
+                    set.add(worstVoice.key)
+                    return Diagnosis(
+                        problem = "Voice ${worstVoice.key} averages ${worstVoice.value.avgMs}ms — user waits too long",
+                        suggestion = "Skip LLM rewrite for voice ${worstVoice.key}",
+                        param = "llm_rewrite_skip_intents",
+                        previousValue = currentSkip,
+                        proposedValue = set.joinToString(",")
+                    )
+                }
+            }
+            return null
+        }
+    }
+
     /**
      * Count-based trigger: called after every TaskOutcome is logged.
      * If enough new outcomes have accumulated, runs the full loop and
@@ -346,141 +476,17 @@ class OodaEngine @Inject constructor(
      * Priority-ordered diagnosis. FIRST matching rule wins — one change per batch.
      * Thresholds are tuned for Minima's context (phone launcher, ~dozens of tasks/day).
      */
-    private fun diagnose(stats: BatchStats, outcomes: List<TaskOutcomeEntity>): Diagnosis? {
-        // Rule 1: voice bucket failing hard
-        val voiceBucket = stats.byVoiceText["voice"]
-        if (voiceBucket != null && voiceBucket.count >= 10 && voiceBucket.successRate < 0.75) {
-            val currentTimeout = prefs.getInt("voice_timeout_ms", 3000).toString()
-            val proposed = (prefs.getInt("voice_timeout_ms", 3000) + 500).coerceAtMost(5000).toString()
-            return Diagnosis(
-                problem = "Voice tasks succeed only ${(voiceBucket.successRate * 100).toInt()}% of the time",
-                suggestion = "Extend STT silence tolerance; users need more pause",
-                param = "voice_timeout_ms",
-                previousValue = currentTimeout,
-                proposedValue = proposed
-            )
-        }
-
-        // Rule 2: an intent has catastrophic failure rate
-        val worstIntent = stats.byIntent
-            .filter { it.value.count >= 5 }
-            .minByOrNull { it.value.successRate }
-        if (worstIntent != null && worstIntent.value.successRate < 0.60) {
-            return Diagnosis(
-                problem = "Intent ${worstIntent.key} fails ${((1 - worstIntent.value.successRate) * 100).toInt()}% of the time (n=${worstIntent.value.count})",
-                suggestion = "Review capability handler for ${worstIntent.key}; log errorMessage column for pattern",
-                param = "intent_handler_${worstIntent.key}",
-                previousValue = "current",
-                proposedValue = "review"
-            )
-        }
-
-        // Rule 3: a provider underperforms vs the rest
-        val providerStats = stats.byProvider.filter { it.value.count >= 5 && it.key != "NONE" }
-        if (providerStats.size >= 2) {
-            val best = providerStats.maxByOrNull { it.value.successRate } ?: return null
-            val worst = providerStats.minByOrNull { it.value.successRate } ?: return null
-            if (best.value.successRate - worst.value.successRate > 0.20) {
-                return Diagnosis(
-                    problem = "${worst.key} success rate ${(worst.value.successRate * 100).toInt()}% vs ${best.key} at ${(best.value.successRate * 100).toInt()}%",
-                    suggestion = "Route more traffic to ${best.key} as default",
-                    param = "provider_default",
-                    previousValue = worst.key,
-                    proposedValue = best.key
-                )
-            }
-        }
-
-        // Rule 4: latency spike on a voice-capable intent — propose adding it to skip list
-        if (stats.avgTotalMs > 6000) {
-            val slowestIntent = stats.byIntent
-                .filter { it.value.count >= 5 }
-                .maxByOrNull { it.value.avgMs }
-            if (slowestIntent != null && slowestIntent.value.avgMs > 5000) {
-                val currentSkip = prefs.getString(
-                    KEY_APPLIED_PREFIX + "llm_rewrite_skip_intents",
-                    "GET_WEATHER,CREATE_CALENDAR_EVENT,FLASHLIGHT,SET_ALARM,OPEN_CAMERA,MUSIC_CONTROL"
-                ) ?: ""
-                val skipSet = currentSkip.split(",").map { it.trim() }.filter { it.isNotEmpty() }.toMutableSet()
-                if (slowestIntent.key !in skipSet) {
-                    skipSet.add(slowestIntent.key)
-                    return Diagnosis(
-                        problem = "Intent ${slowestIntent.key} averages ${slowestIntent.value.avgMs}ms (batch avg ${stats.avgTotalMs}ms)",
-                        suggestion = "Skip LLM rewrite for ${slowestIntent.key}; speak capability result directly",
-                        param = "llm_rewrite_skip_intents",
-                        previousValue = currentSkip,
-                        proposedValue = skipSet.joinToString(",")
-                    )
-                }
-            }
-        }
-
-        // Rule 5: low LLM confidence on majority of tasks — nudge temperature up (more flexible)
-        val lowConf = outcomes.count { it.confidence == "LOW" }.toDouble() / outcomes.size.coerceAtLeast(1)
-        if (lowConf > 0.30) {
-            val currentTemp = prefs.getString(KEY_APPLIED_PREFIX + "temperature", "0.3") ?: "0.3"
-            val t = currentTemp.toDoubleOrNull() ?: 0.3
-            val proposed = (t + 0.1).coerceIn(0.1, 0.7)
-            if (kotlin.math.abs(proposed - t) > 0.001) {
-                return Diagnosis(
-                    problem = "${(lowConf * 100).toInt()}% of classifications have LOW confidence",
-                    suggestion = "Nudge temperature up so the model explores more intent mappings",
-                    param = "temperature",
-                    previousValue = currentTemp,
-                    proposedValue = String.format(java.util.Locale.US, "%.1f", proposed)
-                )
-            }
-        }
-
-        // Rule 6: high LLM confidence AND small latency — try pulling temperature DOWN for determinism
-        val highConf = outcomes.count { it.confidence == "HIGH" }.toDouble() / outcomes.size.coerceAtLeast(1)
-        if (highConf > 0.90 && stats.avgTotalMs < 3000 && stats.successRate > 0.95) {
-            val currentTemp = prefs.getString(KEY_APPLIED_PREFIX + "temperature", "0.3") ?: "0.3"
-            val t = currentTemp.toDoubleOrNull() ?: 0.3
-            val proposed = (t - 0.1).coerceIn(0.1, 0.7)
-            if (kotlin.math.abs(proposed - t) > 0.001 && t > 0.15) {
-                return Diagnosis(
-                    problem = "${(highConf * 100).toInt()}% HIGH confidence, system is stable",
-                    suggestion = "Pull temperature down for more deterministic classification",
-                    param = "temperature",
-                    previousValue = currentTemp,
-                    proposedValue = String.format(java.util.Locale.US, "%.1f", proposed)
-                )
-            }
-        }
-
-        // Rule 7: voice-initiated tasks spending too much time in execution → skip rewrite for the worst
-        val voiceByIntent = outcomes.filter { it.voiceInitiated }
-            .groupBy { it.intent }
-            .mapValues { (_, rows) ->
-                BucketStats(
-                    count = rows.size,
-                    successRate = rows.count { it.success }.toDouble() / rows.size,
-                    avgMs = rows.sumOf { it.totalMs } / rows.size.coerceAtLeast(1)
-                )
-            }
-            .filter { it.value.count >= 5 && it.value.avgMs > 4000 }
-        val worstVoiceIntent = voiceByIntent.maxByOrNull { it.value.avgMs }
-        if (worstVoiceIntent != null) {
-            val currentSkip = prefs.getString(
-                KEY_APPLIED_PREFIX + "llm_rewrite_skip_intents", ""
-            ) ?: ""
-            val skipSet = currentSkip.split(",").map { it.trim() }.filter { it.isNotEmpty() }.toMutableSet()
-            if (worstVoiceIntent.key !in skipSet) {
-                skipSet.add(worstVoiceIntent.key)
-                return Diagnosis(
-                    problem = "Voice ${worstVoiceIntent.key} averages ${worstVoiceIntent.value.avgMs}ms — user waits too long",
-                    suggestion = "Skip LLM rewrite for voice ${worstVoiceIntent.key}",
-                    param = "llm_rewrite_skip_intents",
-                    previousValue = currentSkip,
-                    proposedValue = skipSet.joinToString(",")
-                )
-            }
-        }
-
-        // Everything is fine — but we still log the stats
-        Log.i(TAG, "Batch ${stats.batchId}: no diagnosis needed (success=${(stats.successRate * 100).toInt()}%, avg=${stats.avgTotalMs}ms)")
-        return null
+    /** Instance wrapper — captures current applied values from prefs then delegates to the pure function. */
+    internal fun diagnose(stats: BatchStats, outcomes: List<TaskOutcomeEntity>): Diagnosis? {
+        val applied = mapOf(
+            "voice_timeout_ms" to (prefs.getString(KEY_APPLIED_PREFIX + "voice_timeout_ms", "3000") ?: "3000"),
+            "temperature" to (prefs.getString(KEY_APPLIED_PREFIX + "temperature", "0.3") ?: "0.3"),
+            "llm_rewrite_skip_intents" to (prefs.getString(
+                KEY_APPLIED_PREFIX + "llm_rewrite_skip_intents",
+                "GET_WEATHER,CREATE_CALENDAR_EVENT,FLASHLIGHT,SET_ALARM,OPEN_CAMERA,MUSIC_CONTROL"
+            ) ?: "")
+        )
+        return Rules.diagnosePure(stats, outcomes, applied)
     }
 
     /** For the dashboard — fast summary of recent state. */
