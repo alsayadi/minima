@@ -290,7 +290,8 @@ fun LauncherScreen(
                 onRefresh = { viewModel.refreshOodaSummary() },
                 onDismiss = { showOoda = false },
                 onApplyProposal = { viewModel.applyOodaProposal(it) },
-                onDismissProposal = { viewModel.dismissOodaProposal(it) }
+                onDismissProposal = { viewModel.dismissOodaProposal(it) },
+                onRunNow = { viewModel.runOodaBatchNow() }
             )
         }
 

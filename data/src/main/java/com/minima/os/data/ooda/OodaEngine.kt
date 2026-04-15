@@ -78,6 +78,67 @@ class OodaEngine @Inject constructor(
     /** Live feed of un-applied proposal count — drives the home-screen badge. */
     fun observePendingProposals() = changeDao.observePendingCount()
 
+    /** Force a batch run regardless of count — used by the dashboard's "Run now" button. */
+    suspend fun runBatchNow(): Diagnosis? {
+        val lastBatchAt = prefs.getLong(KEY_LAST_BATCH_AT, 0L)
+        val newCount = outcomeDao.countSince(lastBatchAt)
+        if (newCount == 0) return null  // nothing to analyze
+        val batchId = prefs.getLong(KEY_BATCH_ID, 0L) + 1
+        val outcomes = outcomeDao.getSince(lastBatchAt)
+        val stats = analyze(outcomes, batchId)
+        val diagnosis = diagnose(stats, outcomes)
+        if (diagnosis != null) {
+            changeDao.insert(
+                TuningChangeEntity(
+                    batchId = batchId,
+                    param = diagnosis.param,
+                    previousValue = diagnosis.previousValue,
+                    proposedValue = diagnosis.proposedValue,
+                    reason = diagnosis.problem,
+                    suggestion = diagnosis.suggestion,
+                    applied = false
+                )
+            )
+        }
+        appendBatchHistory(stats.successRate, stats.avgTotalMs, stats.count)
+        prefs.edit()
+            .putLong(KEY_LAST_BATCH_AT, System.currentTimeMillis())
+            .putLong(KEY_BATCH_ID, batchId)
+            .apply()
+        return diagnosis
+    }
+
+    /** Inject synthetic outcomes for demos / smoke tests. */
+    suspend fun seedSyntheticOutcomes(count: Int = 35): Int {
+        val now = System.currentTimeMillis()
+        val intents = listOf("OPEN_APP", "GET_WEATHER", "ANSWER", "SET_REMINDER", "CALL_CONTACT", "FLASHLIGHT")
+        val providers = listOf("OPENAI", "GROQ", "ANTHROPIC")
+        repeat(count) { i ->
+            val isVoice = i % 3 == 0
+            // Simulate voice failing more often — so Rule 1 fires
+            val voiceFail = isVoice && (i % 7 == 0 || i % 5 == 0)
+            outcomeDao.insert(
+                TaskOutcomeEntity(
+                    taskId = "seed-${now}-$i",
+                    command = "seed command $i",
+                    intent = intents[i % intents.size],
+                    confidence = if (i % 4 == 0) "LOW" else "HIGH",
+                    provider = providers[i % providers.size],
+                    model = "seed",
+                    classificationMs = 600L + (i * 13 % 400),
+                    executionMs = 1200L + (i * 17 % 1600),
+                    totalMs = 1800L + (i * 31 % 2000),
+                    success = !voiceFail && i % 23 != 0,
+                    voiceInitiated = isVoice,
+                    hourOfDay = (8 + i) % 24,
+                    dayOfWeek = 1 + (i % 7),
+                    timestamp = now - ((count - i) * 60_000L)
+                )
+            )
+        }
+        return count
+    }
+
     fun applyMode(): ApplyMode {
         val v = prefs.getString(KEY_APPLY_MODE, ApplyMode.LOG_ONLY.name) ?: return ApplyMode.LOG_ONLY
         return runCatching { ApplyMode.valueOf(v) }.getOrDefault(ApplyMode.LOG_ONLY)

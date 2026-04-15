@@ -39,6 +39,7 @@ fun OodaDashboard(
     onDismiss: () -> Unit,
     onApplyProposal: (TuningChangeEntity) -> Unit = {},
     onDismissProposal: (TuningChangeEntity) -> Unit = {},
+    onRunNow: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     LaunchedEffect(Unit) { onRefresh() }
@@ -90,11 +91,28 @@ fun OodaDashboard(
                         color = MinimaColors.onSurface
                     )
                 }
-                IconButton(onClick = onDismiss) {
-                    androidx.compose.material3.Icon(
-                        Icons.Default.Close, "Close",
-                        tint = MinimaColors.onSurfaceVariant
-                    )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(MinimaColors.primary.copy(alpha = 0.15f))
+                            .clickable { onRunNow() }
+                            .padding(horizontal = 12.dp, vertical = 6.dp)
+                    ) {
+                        Text(
+                            "Run now",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = MinimaColors.primary
+                        )
+                    }
+                    Spacer(Modifier.width(8.dp))
+                    IconButton(onClick = onDismiss) {
+                        androidx.compose.material3.Icon(
+                            Icons.Default.Close, "Close",
+                            tint = MinimaColors.onSurfaceVariant
+                        )
+                    }
                 }
             }
 

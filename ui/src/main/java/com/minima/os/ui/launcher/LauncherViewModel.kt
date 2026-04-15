@@ -92,6 +92,15 @@ class LauncherViewModel @Inject constructor(
         }
     }
 
+    fun runOodaBatchNow() {
+        viewModelScope.launch {
+            try {
+                oodaEngine.runBatchNow()
+                refreshOodaSummary()
+            } catch (_: Exception) {}
+        }
+    }
+
     /** Dismiss = leave as proposal but hide locally (simple: just refresh — future: real dismiss flag). */
     fun dismissOodaProposal(@Suppress("UNUSED_PARAMETER") change: com.minima.os.data.entity.TuningChangeEntity) {
         refreshOodaSummary()
@@ -240,6 +249,33 @@ class LauncherViewModel @Inject constructor(
             _uiState.value = _uiState.value.copy(commandText = "")
             refreshOodaSummary()
             _showOodaRequested.value = _showOodaRequested.value + 1
+            return
+        }
+
+        if (text == "debug seed-ooda") {
+            _uiState.value = _uiState.value.copy(commandText = "")
+            viewModelScope.launch {
+                try {
+                    val n = oodaEngine.seedSyntheticOutcomes(35)
+                    oodaEngine.runBatchNow()
+                    refreshOodaSummary()
+                    _showOodaRequested.value = _showOodaRequested.value + 1
+                    android.util.Log.i("OODA", "Seeded $n synthetic outcomes + forced a batch")
+                } catch (e: Exception) {
+                    android.util.Log.w("OODA", "Seed failed: ${e.message}")
+                }
+            }
+            return
+        }
+
+        if (text == "debug ooda-run") {
+            _uiState.value = _uiState.value.copy(commandText = "")
+            viewModelScope.launch {
+                try {
+                    oodaEngine.runBatchNow()
+                    refreshOodaSummary()
+                } catch (_: Exception) {}
+            }
             return
         }
 
