@@ -105,6 +105,7 @@ class OodaEngine @Inject constructor(
             .putLong(KEY_LAST_BATCH_AT, System.currentTimeMillis())
             .putLong(KEY_BATCH_ID, batchId)
             .apply()
+        writeAttributionIfPossible(stats.successRate)
         return diagnosis
     }
 
@@ -157,12 +158,15 @@ class OodaEngine @Inject constructor(
         prefs.edit()
             .putString(KEY_APPLIED_PREFIX + change.param, change.proposedValue)
             .apply()
-        val updatedRows = changeDao.markApplied(change.id)
+        // Snapshot current success rate as baseline for attribution
+        val recent = outcomeDao.getRecent(100)
+        val baseline = if (recent.isEmpty()) 0.0
+            else recent.count { it.success }.toDouble() / recent.size
+        val updatedRows = changeDao.markApplied(change.id, baseline)
         if (updatedRows == 0) {
-            // No row with that id (shouldn't happen) — fall back to insert.
-            changeDao.insert(change.copy(id = 0, applied = true, timestamp = System.currentTimeMillis()))
+            changeDao.insert(change.copy(id = 0, applied = true, baselineSuccess = baseline, timestamp = System.currentTimeMillis()))
         }
-        Log.i(TAG, "Applied ${change.param}: ${change.previousValue} -> ${change.proposedValue}")
+        Log.i(TAG, "Applied ${change.param}: ${change.previousValue} -> ${change.proposedValue} (baseline ${(baseline * 100).toInt()}%)")
     }
 
     private val prefs: SharedPreferences =
@@ -502,7 +506,17 @@ class OodaEngine @Inject constructor(
             .putLong(KEY_BATCH_ID, batchId)
             .apply()
 
+        writeAttributionIfPossible(stats.successRate)
         return diagnosis
+    }
+
+    /** If the most recent applied change has no attribution yet, compute + write it now. */
+    private suspend fun writeAttributionIfPossible(currentSuccess: Double) {
+        val row = runCatching { changeDao.latestUnattributed() }.getOrNull() ?: return
+        val baseline = row.baselineSuccess ?: return
+        val pp = ((currentSuccess - baseline) * 100).toInt()
+        changeDao.setAttribution(row.id, pp)
+        Log.i(TAG, "Attribution for ${row.param}: ${pp}pp (baseline ${(baseline * 100).toInt()}% → ${(currentSuccess * 100).toInt()}%)")
     }
 
     private fun appendBatchHistory(successRate: Double, avgMs: Long, count: Int) {

@@ -29,7 +29,7 @@ import com.minima.os.data.entity.TuningChangeEntity
         TaskOutcomeEntity::class,
         TuningChangeEntity::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = false
 )
 abstract class MinimaDatabase : RoomDatabase() {

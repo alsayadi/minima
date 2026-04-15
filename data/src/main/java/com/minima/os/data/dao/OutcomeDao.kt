@@ -50,6 +50,14 @@ interface TuningChangeDao {
     fun observePendingCount(): Flow<Int>
 
     /** Mark a single proposal applied in place (no duplicate row). */
-    @Query("UPDATE tuning_changes SET applied = 1, timestamp = :now WHERE id = :id")
-    suspend fun markApplied(id: Long, now: Long = System.currentTimeMillis()): Int
+    @Query("UPDATE tuning_changes SET applied = 1, timestamp = :now, baselineSuccess = :baseline WHERE id = :id")
+    suspend fun markApplied(id: Long, baseline: Double, now: Long = System.currentTimeMillis()): Int
+
+    /** Find most recent applied row that still lacks attribution (after apply, before next batch). */
+    @Query("SELECT * FROM tuning_changes WHERE applied = 1 AND attributionPp IS NULL ORDER BY timestamp DESC LIMIT 1")
+    suspend fun latestUnattributed(): TuningChangeEntity?
+
+    /** Write the post-apply delta once the next batch runs. */
+    @Query("UPDATE tuning_changes SET attributionPp = :pp WHERE id = :id")
+    suspend fun setAttribution(id: Long, pp: Int): Int
 }

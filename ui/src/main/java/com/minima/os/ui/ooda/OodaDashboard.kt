@@ -323,11 +323,35 @@ private fun ChangeRow(
                 fontWeight = FontWeight.Medium,
                 color = MinimaColors.primary
             )
-            Text(
-                if (c.applied) "applied" else "proposal",
-                fontSize = 10.sp,
-                color = if (c.applied) Color(0xFF7FD48F) else MinimaColors.onSurfaceVariant
-            )
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                val pp = c.attributionPp
+                if (c.applied && pp != null) {
+                    val sign = if (pp > 0) "+" else ""
+                    val color = when {
+                        pp > 0 -> Color(0xFF7FD48F)
+                        pp < 0 -> Color(0xFFE08A8A)
+                        else -> MinimaColors.onSurfaceVariant
+                    }
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(color.copy(alpha = 0.15f))
+                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                    ) {
+                        Text(
+                            "$sign${pp}pp",
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = color
+                        )
+                    }
+                }
+                Text(
+                    if (c.applied) "applied" else "proposal",
+                    fontSize = 10.sp,
+                    color = if (c.applied) Color(0xFF7FD48F) else MinimaColors.onSurfaceVariant
+                )
+            }
         }
         Text(
             "${c.previousValue} → ${c.proposedValue}",

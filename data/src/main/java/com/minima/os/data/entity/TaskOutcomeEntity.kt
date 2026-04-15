@@ -36,5 +36,9 @@ data class TuningChangeEntity(
     val reason: String,              // diagnosis problem
     val suggestion: String,          // diagnosis suggestion
     val applied: Boolean = false,    // true = actually changed, false = proposal only
-    val timestamp: Long = System.currentTimeMillis()
+    val timestamp: Long = System.currentTimeMillis(),
+    /** Success rate at the moment this change was applied (null if not applied yet). */
+    val baselineSuccess: Double? = null,
+    /** Post-apply delta in percentage points vs baseline (null until next batch runs). */
+    val attributionPp: Int? = null
 )
