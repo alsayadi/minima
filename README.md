@@ -34,7 +34,15 @@ Tap the mic to go hands-free: Minima listens, executes, and speaks the result ba
 
 ## Screenshots
 
-See the intro above, or browse `docs/` for full-resolution stills.
+<p align="center">
+  <img src="docs/home-screen.png" alt="Minima home screen" width="260">
+  <img src="docs/ooda-dashboard-stats.png" alt="OODA dashboard — per-intent breakdown" width="260">
+  <img src="docs/ooda-dashboard-proposal.png" alt="OODA dashboard — proposal from Rule 1" width="260">
+</p>
+
+Left: home screen with greeting pill, compact clock, "Your day is clear." status, and 4 suggestion chips.
+Middle: OODA dashboard after typing `debug seed-ooda` — shows success rate per intent and provider.
+Right: scrolled down to **Rule 1 firing** — detected voice bucket at 66% success and proposed `voice_timeout_ms 3000 → 3500`.
 
 ## Architecture
 
