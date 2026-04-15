@@ -9,7 +9,7 @@
   <img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT license">
   <img src="https://img.shields.io/badge/min%20API-28-green" alt="minSdk 28">
   <img src="https://img.shields.io/badge/intents-21-purple" alt="21 intents">
-  <img src="https://img.shields.io/badge/OODA%20rules-10-orange" alt="10 rules">
+  <img src="https://img.shields.io/badge/OODA%20rules-11-orange" alt="11 rules">
 </p>
 
 An AI-first Android launcher. No app grid. No home screen. Just a clock, a command bar, a memory, and a voice.
@@ -160,8 +160,9 @@ Minima ships with a self-tuning loop ported from the `autoresearch` pattern in t
 8. Error-message clustering ≥ 40% → targeted suggestion (network / mic / parse)
 9. Any 4-hour slot success ≥ 20pp below others → investigate time window
 10. Arabic in ≥ 3 failed voice commands → propose bilingual STT
+11. **Anti-oscillation** — any param that churned ≥ 3× in the last 6 changes is frozen for this batch (prevents the loop from fighting itself)
 
-**Tests**: 12 pure JVM test cases cover every rule's fire/no-fire boundary + priority ordering.
+**Tests**: 13 pure JVM test cases cover every rule's fire/no-fire boundary + priority ordering + anti-oscillation.
 
 ```bash
 # JUnit via gradle
@@ -187,7 +188,8 @@ Output of the self-check:
 ✓ error clustering → Rule 8 (network)
 ✓ time-of-day regression → Rule 9 (slot 1)
 ✓ Arabic voice fail → Rule 10 (locale hint)
-✅  All 12 rule tests passed — OODA diagnose engine verified
+✓ oscillation → Rule 11 blocks voice_timeout_ms
+✅  All 13 rule tests passed — OODA diagnose engine verified
 ```
 
 CI runs the self-check on every push to `main` — green badge above means the loop is healthy.
