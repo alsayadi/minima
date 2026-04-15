@@ -152,13 +152,16 @@ class OodaEngine @Inject constructor(
     fun appliedValue(param: String): String? =
         prefs.getString(KEY_APPLIED_PREFIX + param, null)
 
-    /** Mark a proposal as applied: flip the row's flag, store the value for runtime lookup. */
+    /** Mark a proposal as applied in place (no duplicate row) + persist the runtime value. */
     suspend fun applyProposal(change: TuningChangeEntity) {
         prefs.edit()
             .putString(KEY_APPLIED_PREFIX + change.param, change.proposedValue)
             .apply()
-        // Re-insert with applied=true so dashboard reflects it
-        changeDao.insert(change.copy(id = 0, applied = true, timestamp = System.currentTimeMillis()))
+        val updatedRows = changeDao.markApplied(change.id)
+        if (updatedRows == 0) {
+            // No row with that id (shouldn't happen) — fall back to insert.
+            changeDao.insert(change.copy(id = 0, applied = true, timestamp = System.currentTimeMillis()))
+        }
         Log.i(TAG, "Applied ${change.param}: ${change.previousValue} -> ${change.proposedValue}")
     }
 
@@ -204,7 +207,7 @@ class OodaEngine @Inject constructor(
             recentChanges: List<TuningChangeEntity> = emptyList()
         ): Diagnosis? {
             // Rule 11 (priority 0): don't re-propose a param that's been flip-flopping.
-            // If within the last 4 applied+rollback rows the same param appeared ≥3 times,
+            // If within the last 6 change rows the same param appeared ≥3 times,
             // it's oscillating — skip it for this batch.
             val oscillating = recentChanges.take(6)
                 .groupBy { it.param }
@@ -385,6 +388,24 @@ class OodaEngine @Inject constructor(
                     previousValue = "en-US",
                     proposedValue = "ar-multilang"
                 )
+            }
+
+            // Rule 12: classifier-timid detection — success is high BUT LOW-confidence rate is
+            // also high. Classifier is marking safe calls as risky. Propose tightening.
+            val successfulButLowConf = outcomes.count { it.success && it.confidence == "LOW" }
+            val timidRate = successfulButLowConf.toDouble() / outcomes.size.coerceAtLeast(1)
+            if (timidRate > 0.25 && stats.successRate > 0.90 && "temperature" !in oscillating) {
+                val t = appliedValues["temperature"]?.toDoubleOrNull() ?: 0.3
+                val proposed = (t - 0.1).coerceIn(0.1, 0.7)
+                if (kotlin.math.abs(proposed - t) > 0.001 && t > 0.15) {
+                    return Diagnosis(
+                        problem = "${(timidRate * 100).toInt()}% of successful tasks were marked LOW confidence",
+                        suggestion = "Classifier is timid — drop temperature for tighter, more confident output",
+                        param = "temperature",
+                        previousValue = String.format(java.util.Locale.US, "%.1f", t),
+                        proposedValue = String.format(java.util.Locale.US, "%.1f", proposed)
+                    )
+                }
             }
 
             return null

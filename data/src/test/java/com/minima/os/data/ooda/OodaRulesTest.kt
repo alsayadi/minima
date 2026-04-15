@@ -162,6 +162,16 @@ class OodaRulesTest {
         assertTrue(d.problem.contains("4:00-7:59"))
     }
 
+    @Test fun `rule 12 — classifier timid drops temperature`() {
+        // 9 LOW + 22 HIGH (all success) → lowConf 29% (no Rule 5) + timid 29% > 25% → Rule 12
+        val outcomes = (1..9).map { outcome(confidence = "LOW") } +
+                       (1..22).map { outcome(confidence = "HIGH") }
+        val d = OodaEngine.Rules.diagnosePure(stats(outcomes), outcomes, defaultApplied())
+        assertNotNull(d)
+        assertEquals("temperature", d!!.param)
+        assertEquals("0.2", d.proposedValue)
+    }
+
     @Test fun `rule 11 — oscillating param is skipped`() {
         // Voice clearly failing; would normally trigger Rule 1. But voice_timeout_ms has been
         // flip-flopping in the last 6 batches (3 times), so Rule 11 blocks it.

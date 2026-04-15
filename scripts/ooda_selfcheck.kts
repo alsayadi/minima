@@ -162,6 +162,19 @@ fun diagnose(
             "stt_language_hint", "en-US", "ar-multilang"
         )
     }
+    // 12. classifier-timid: many successful LOW-confidence calls
+    val successLow = o.count { it.success && it.confidence == "LOW" }
+    val timid = successLow.toDouble() / o.size.coerceAtLeast(1)
+    if (timid > 0.25 && s.successRate > 0.90 && "temperature" !in oscillating) {
+        val t = applied["temperature"]?.toDoubleOrNull() ?: 0.3
+        val p = (t - 0.1).coerceIn(0.1, 0.7)
+        if (kotlin.math.abs(p - t) > 0.001 && t > 0.15) {
+            return Diagnosis(
+                "timid ${(timid*100).toInt()}%", "temp down",
+                "temperature", "%.1f".format(t), "%.1f".format(p)
+            )
+        }
+    }
     return null
 }
 
@@ -316,9 +329,21 @@ run {
         "got ${d?.param}")
 }
 
+// Test 14: classifier-timid → Rule 12 drops temperature
+run {
+    // Must sneak past Rule 5 (fires at lowConf > 30%) while clearing Rule 12 (timid > 25%).
+    // 9 LOW + 22 HIGH = 31 outcomes. lowConf = 29% (no Rule 5). timidRate = 29% (> 25%). All success.
+    val o = (1..9).map { TaskOutcome("ANSWER", "LOW", "OPENAI", false, true) } +
+            (1..22).map { TaskOutcome("ANSWER", "HIGH", "OPENAI", false, true) }
+    val d = diagnose(stats(o), o, defaultApplied())
+    check("classifier timid → Rule 12 (temp 0.3→0.2)",
+        d != null && d.param == "temperature" && d.proposedValue == "0.2",
+        "got ${d?.param}=${d?.proposedValue}")
+}
+
 println("=====================")
 if (failed == 0) {
-    println("✅  All 13 rule tests passed — OODA diagnose engine verified")
+    println("✅  All 14 rule tests passed — OODA diagnose engine verified")
     kotlin.system.exitProcess(0)
 } else {
     println("❌  $failed test(s) failed")

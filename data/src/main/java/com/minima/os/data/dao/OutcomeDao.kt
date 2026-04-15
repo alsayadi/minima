@@ -33,6 +33,9 @@ interface TuningChangeDao {
     @Insert
     suspend fun insert(change: TuningChangeEntity): Long
 
+    @androidx.room.Update
+    suspend fun update(change: TuningChangeEntity)
+
     @Query("SELECT * FROM tuning_changes ORDER BY timestamp DESC LIMIT :limit")
     suspend fun getRecent(limit: Int = 50): List<TuningChangeEntity>
 
@@ -45,4 +48,8 @@ interface TuningChangeDao {
 
     @Query("SELECT COUNT(*) FROM tuning_changes WHERE applied = 0")
     fun observePendingCount(): Flow<Int>
+
+    /** Mark a single proposal applied in place (no duplicate row). */
+    @Query("UPDATE tuning_changes SET applied = 1, timestamp = :now WHERE id = :id")
+    suspend fun markApplied(id: Long, now: Long = System.currentTimeMillis()): Int
 }
