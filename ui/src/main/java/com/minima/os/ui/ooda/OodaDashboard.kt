@@ -1,5 +1,6 @@
 package com.minima.os.ui.ooda
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -15,7 +16,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -108,6 +113,9 @@ fun OodaDashboard(
                     )
                 } else {
                     SummaryHeader(summary)
+                    if (summary.history.isNotEmpty()) {
+                        TrendCard(summary.history)
+                    }
                     Spacer(Modifier.height(4.dp))
                     DimensionSection("By intent", summary.stats.byIntent)
                     DimensionSection("By provider", summary.stats.byProvider)
@@ -157,6 +165,70 @@ private fun SummaryHeader(s: OodaEngine.Summary) {
             StatCell("${(s.stats.successRate * 100).toInt()}%", "success")
             StatCell("${s.stats.avgTotalMs}ms", "avg")
             StatCell("${s.outcomesUntilNextBatch}", "to batch")
+        }
+    }
+}
+
+@Composable
+private fun TrendCard(history: List<Triple<Double, Long, Int>>) {
+    val rates = history.map { it.first.toFloat() }
+    val latest = rates.last()
+    val first = rates.first()
+    val delta = ((latest - first) * 100).toInt()
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .background(MinimaColors.surfaceContainerLow)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+            Text(
+                "SUCCESS RATE · LAST ${history.size} BATCHES",
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Medium,
+                color = MinimaColors.primary.copy(alpha = 0.7f),
+                letterSpacing = 1.2.sp
+            )
+            val sign = if (delta > 0) "+" else ""
+            val color = when {
+                delta > 0 -> Color(0xFF7FD48F)
+                delta < 0 -> Color(0xFFE08A8A)
+                else -> MinimaColors.onSurfaceVariant
+            }
+            Text(
+                "$sign$delta pp",
+                fontSize = 11.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = color
+            )
+        }
+        Canvas(modifier = Modifier.fillMaxWidth().height(48.dp)) {
+            if (rates.size < 2) return@Canvas
+            val maxR = rates.max()
+            val minR = rates.min()
+            val range = (maxR - minR).coerceAtLeast(0.01f)
+            val stepX = size.width / (rates.size - 1).coerceAtLeast(1)
+            val path = Path()
+            rates.forEachIndexed { i, r ->
+                val x = stepX * i
+                val y = size.height - ((r - minR) / range) * size.height * 0.85f - size.height * 0.075f
+                if (i == 0) path.moveTo(x, y) else path.lineTo(x, y)
+            }
+            drawPath(
+                path = path,
+                color = Color(0xFFACA3FF),
+                style = Stroke(width = 2.5f, cap = StrokeCap.Round)
+            )
+            // Endpoint dot
+            val lastX = size.width
+            val lastY = size.height - ((rates.last() - minR) / range) * size.height * 0.85f - size.height * 0.075f
+            drawCircle(
+                color = Color(0xFFACA3FF),
+                radius = 4f,
+                center = Offset(lastX, lastY)
+            )
         }
     }
 }

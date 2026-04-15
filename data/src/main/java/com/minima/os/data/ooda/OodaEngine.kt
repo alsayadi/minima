@@ -39,6 +39,15 @@ class OodaEngine @Inject constructor(
         private const val KEY_BATCH_ID = "batch_id"
         const val KEY_APPLY_MODE = "apply_mode"
         const val KEY_APPLIED_PREFIX = "applied_"  // applied_voice_timeout_ms = "4500"
+        const val KEY_LAST_APPLIED_PARAM = "last_applied_param"
+        const val KEY_LAST_APPLIED_PREV = "last_applied_prev"
+        const val KEY_LAST_APPLIED_BASELINE_SUCCESS = "last_applied_baseline_success"  // double as bits
+        const val KEY_LAST_APPLIED_BATCH_ID = "last_applied_batch_id"
+        const val KEY_BATCH_HISTORY_JSON = "batch_history_json"
+        /** Regression threshold: if new success rate drops this many percentage points below baseline, roll back. */
+        private const val ROLLBACK_REGRESSION_DELTA = 0.10  // 10 pp
+        /** Keep last N batches in the trend history. */
+        private const val MAX_HISTORY = 50
 
         /** Params that are safe to auto-apply when in AUTO_SAFE mode. */
         private val SAFE_PARAMS = setOf(
@@ -124,6 +133,42 @@ class OodaEngine @Inject constructor(
         Log.i(TAG, "Batch $batchId: analyzing ${outcomes.size} outcomes")
 
         val stats = analyze(outcomes, batchId)
+
+        // Attribution — compare to baseline set when last auto-apply ran
+        val lastParam = prefs.getString(KEY_LAST_APPLIED_PARAM, null)
+        val lastPrev = prefs.getString(KEY_LAST_APPLIED_PREV, null)
+        val baselineBits = prefs.getLong(KEY_LAST_APPLIED_BASELINE_SUCCESS, Long.MIN_VALUE)
+        val lastAppliedBatch = prefs.getLong(KEY_LAST_APPLIED_BATCH_ID, -1L)
+        val baselineSuccess = if (baselineBits != Long.MIN_VALUE)
+            java.lang.Double.longBitsToDouble(baselineBits) else Double.NaN
+
+        if (lastParam != null && lastAppliedBatch == batchId - 1 && !baselineSuccess.isNaN()) {
+            val delta = stats.successRate - baselineSuccess
+            val deltaPct = (delta * 100).toInt()
+            Log.i(TAG, "Attribution for $lastParam: $deltaPct pp (baseline ${(baselineSuccess * 100).toInt()}% -> ${(stats.successRate * 100).toInt()}%)")
+            if (delta < -ROLLBACK_REGRESSION_DELTA && lastPrev != null) {
+                // Rollback
+                prefs.edit()
+                    .putString(KEY_APPLIED_PREFIX + lastParam, lastPrev)
+                    .remove(KEY_LAST_APPLIED_PARAM)
+                    .remove(KEY_LAST_APPLIED_PREV)
+                    .remove(KEY_LAST_APPLIED_BASELINE_SUCCESS)
+                    .apply()
+                changeDao.insert(
+                    TuningChangeEntity(
+                        batchId = batchId,
+                        param = lastParam,
+                        previousValue = "current",
+                        proposedValue = lastPrev,
+                        reason = "Regression $deltaPct pp after last change — auto-rollback",
+                        suggestion = "Reverted to previous value",
+                        applied = true
+                    )
+                )
+                Log.w(TAG, "Rolled back $lastParam due to $deltaPct pp regression")
+            }
+        }
+
         val diagnosis = diagnose(stats, outcomes)
 
         if (diagnosis != null) {
@@ -145,10 +190,18 @@ class OodaEngine @Inject constructor(
             if (autoApply) {
                 prefs.edit()
                     .putString(KEY_APPLIED_PREFIX + diagnosis.param, diagnosis.proposedValue)
+                    .putString(KEY_LAST_APPLIED_PARAM, diagnosis.param)
+                    .putString(KEY_LAST_APPLIED_PREV, diagnosis.previousValue)
+                    .putLong(KEY_LAST_APPLIED_BASELINE_SUCCESS,
+                        java.lang.Double.doubleToRawLongBits(stats.successRate))
+                    .putLong(KEY_LAST_APPLIED_BATCH_ID, batchId)
                     .apply()
                 Log.i(TAG, "AUTO_SAFE applied ${diagnosis.param}: ${diagnosis.previousValue} -> ${diagnosis.proposedValue}")
             }
         }
+
+        // Append to trend history (capped list of "successRate per batch")
+        appendBatchHistory(stats.successRate, stats.avgTotalMs, stats.count)
 
         prefs.edit()
             .putLong(KEY_LAST_BATCH_AT, System.currentTimeMillis())
@@ -156,6 +209,35 @@ class OodaEngine @Inject constructor(
             .apply()
 
         return diagnosis
+    }
+
+    private fun appendBatchHistory(successRate: Double, avgMs: Long, count: Int) {
+        val existing = prefs.getString(KEY_BATCH_HISTORY_JSON, "[]") ?: "[]"
+        // Simple JSON: [[success,avgMs,count],...]
+        val entry = "[${String.format(java.util.Locale.US, "%.3f", successRate)},$avgMs,$count]"
+        val inner = existing.trim().removePrefix("[").removeSuffix("]").trim()
+        val merged = if (inner.isEmpty()) listOf(entry) else inner.split("],[").map {
+            "[" + it.removePrefix("[").removeSuffix("]") + "]"
+        } + entry
+        val capped = merged.takeLast(MAX_HISTORY)
+        prefs.edit().putString(KEY_BATCH_HISTORY_JSON, "[" + capped.joinToString(",") + "]").apply()
+    }
+
+    /** Parsed batch history for the sparkline. Returns empty if no batches yet. */
+    fun batchHistory(): List<Triple<Double, Long, Int>> {
+        val raw = prefs.getString(KEY_BATCH_HISTORY_JSON, null) ?: return emptyList()
+        if (raw.length < 3) return emptyList()
+        val stripped = raw.trim().removePrefix("[").removeSuffix("]").trim()
+        if (stripped.isEmpty()) return emptyList()
+        return stripped.split("],[").mapNotNull { part ->
+            val clean = part.removePrefix("[").removeSuffix("]")
+            val fields = clean.split(",")
+            if (fields.size < 3) return@mapNotNull null
+            val s = fields[0].toDoubleOrNull() ?: return@mapNotNull null
+            val a = fields[1].toLongOrNull() ?: return@mapNotNull null
+            val c = fields[2].toIntOrNull() ?: return@mapNotNull null
+            Triple(s, a, c)
+        }
     }
 
     /** Compute stats + dimension groupings. */
@@ -283,7 +365,8 @@ class OodaEngine @Inject constructor(
             outcomesUntilNextBatch = (MIN_BATCH_SIZE - newCount).coerceAtLeast(0),
             lastBatchAt = lastBatchAt,
             stats = stats,
-            recentChanges = recentChanges
+            recentChanges = recentChanges,
+            history = batchHistory()
         )
     }
 
@@ -292,6 +375,7 @@ class OodaEngine @Inject constructor(
         val outcomesUntilNextBatch: Int,
         val lastBatchAt: Long,
         val stats: BatchStats,
-        val recentChanges: List<TuningChangeEntity>
+        val recentChanges: List<TuningChangeEntity>,
+        val history: List<Triple<Double, Long, Int>> = emptyList()
     )
 }
