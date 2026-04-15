@@ -17,6 +17,7 @@ import com.minima.os.data.memory.ContextEngine
 import com.minima.os.data.memory.MemoryManager
 import com.minima.os.data.memory.MemoryStats
 import com.minima.os.data.memory.ProactiveEngine
+import com.minima.os.data.ooda.OodaEngine
 import com.minima.os.model.provider.CloudModelProvider
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -45,6 +46,7 @@ class LauncherViewModel @Inject constructor(
     private val memoryManager: MemoryManager,
     private val contextEngine: ContextEngine,
     private val proactiveEngine: ProactiveEngine,
+    private val oodaEngine: OodaEngine,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
 
@@ -59,6 +61,20 @@ class LauncherViewModel @Inject constructor(
 
     private val _proactiveCards = MutableStateFlow<List<ProactiveEngine.ProactiveCard>>(emptyList())
     val proactiveCards: StateFlow<List<ProactiveEngine.ProactiveCard>> = _proactiveCards.asStateFlow()
+
+    private val _oodaSummary = MutableStateFlow<OodaEngine.Summary?>(null)
+    val oodaSummary: StateFlow<OodaEngine.Summary?> = _oodaSummary.asStateFlow()
+
+    // Bumped when user types "debug ooda" to request dashboard open
+    private val _showOodaRequested = MutableStateFlow(0)
+    val showOodaRequested: StateFlow<Int> = _showOodaRequested.asStateFlow()
+
+    fun refreshOodaSummary() {
+        viewModelScope.launch {
+            try { _oodaSummary.value = oodaEngine.currentSummary() }
+            catch (_: Exception) {}
+        }
+    }
 
     private val _sensitivity = MutableStateFlow(ProactiveEngine.Sensitivity.NORMAL)
 
@@ -196,6 +212,13 @@ class LauncherViewModel @Inject constructor(
         if (text == "debug reset") {
             clearTestTime()
             _uiState.value = _uiState.value.copy(commandText = "")
+            return
+        }
+
+        if (text == "debug ooda" || text == "auto-tune" || text == "autotune") {
+            _uiState.value = _uiState.value.copy(commandText = "")
+            refreshOodaSummary()
+            _showOodaRequested.value = _showOodaRequested.value + 1
             return
         }
 

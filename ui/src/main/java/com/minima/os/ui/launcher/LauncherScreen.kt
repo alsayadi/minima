@@ -49,6 +49,12 @@ fun LauncherScreen(
     var showAppDrawer by remember { mutableStateOf(false) }
     var showSettings by remember { mutableStateOf(false) }
     var showMemory by remember { mutableStateOf(false) }
+    var showOoda by remember { mutableStateOf(false) }
+
+    val oodaRequest by viewModel.showOodaRequested.collectAsState()
+    LaunchedEffect(oodaRequest) {
+        if (oodaRequest > 0) showOoda = true
+    }
 
     val micCtx = androidx.compose.ui.platform.LocalContext.current
     val micPermissionLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
@@ -263,6 +269,20 @@ fun LauncherScreen(
                 onDismiss = { showSettings = false },
                 onApiKeySaved = { key -> viewModel.onApiKeySaved(key) },
                 onSensitivityChanged = { viewModel.onSensitivityChanged(it) }
+            )
+        }
+
+        // OODA dashboard overlay
+        AnimatedVisibility(
+            visible = showOoda,
+            enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
+            exit = slideOutVertically(targetOffsetY = { it }) + fadeOut()
+        ) {
+            val oodaSummary by viewModel.oodaSummary.collectAsState()
+            com.minima.os.ui.ooda.OodaDashboard(
+                summary = oodaSummary,
+                onRefresh = { viewModel.refreshOodaSummary() },
+                onDismiss = { showOoda = false }
             )
         }
 
