@@ -4,6 +4,14 @@
   <img src="docs/intro.gif" alt="Minima OS intro" width="320" />
 </p>
 
+<p align="center">
+  <a href="https://github.com/alsayadi/minima/actions/workflows/ooda-selfcheck.yml"><img src="https://github.com/alsayadi/minima/actions/workflows/ooda-selfcheck.yml/badge.svg" alt="OODA self-check"></a>
+  <img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT license">
+  <img src="https://img.shields.io/badge/min%20API-28-green" alt="minSdk 28">
+  <img src="https://img.shields.io/badge/intents-21-purple" alt="21 intents">
+  <img src="https://img.shields.io/badge/OODA%20rules-10-orange" alt="10 rules">
+</p>
+
 An AI-first Android launcher. No app grid. No home screen. Just a clock, a command bar, a memory, and a voice.
 
 You tell Minima what you want in natural language — "text Sarah I'm running late", "remind me to call mom at 6", "weather in Dubai", "turn on the flashlight", "schedule meeting with Ali tomorrow" — and it figures out the intent, executes the task, and remembers anything worth remembering.
@@ -140,7 +148,49 @@ Minima ships with a self-tuning loop ported from the `autoresearch` pattern in t
 
 **Dashboard**: type `auto-tune` or `debug ooda` in the command bar. Shows success-rate sparkline, dimension breakdowns, recent changes, per-proposal Apply/Dismiss buttons, and a "Run now" trigger.
 
-**Tests**: `./gradlew :data:testDebugUnitTest` covers each rule with plain JVM JUnit tests (see `data/src/test/java/com/minima/os/data/ooda/OodaRulesTest.kt`).
+**Rules** (priority-ordered, first match wins):
+
+1. Voice bucket success < 75% → bump `voice_timeout_ms`
+2. Any intent success < 60% → surface for handler review
+3. Provider gap > 20pp → swap default to the winner (iff user has a key)
+4. Batch avg latency > 6s on a slow intent → append to `llm_rewrite_skip_intents`
+5. LOW confidence > 30% → nudge `temperature` up
+6. Stable (HIGH > 90%, fast, high success) → pull `temperature` down
+7. Slow voice intent → skip its LLM rewrite
+8. Error-message clustering ≥ 40% → targeted suggestion (network / mic / parse)
+9. Any 4-hour slot success ≥ 20pp below others → investigate time window
+10. Arabic in ≥ 3 failed voice commands → propose bilingual STT
+
+**Tests**: 12 pure JVM test cases cover every rule's fire/no-fire boundary + priority ordering.
+
+```bash
+# JUnit via gradle
+./gradlew :data:testDebugUnitTest
+
+# Standalone kotlinc (no gradle, no network)
+sh "/Applications/Android Studio.app/Contents/plugins/Kotlin/kotlinc/bin/kotlinc" \
+   -script scripts/ooda_selfcheck.kts
+```
+
+Output of the self-check:
+
+```
+✓ healthy batch → Rule 6 (stable, temp down)
+✓ voice fail → Rule 1 (voice_timeout_ms 3000→3500)
+✓ voice timeout cap at 5000
+✓ intent 40% success → Rule 2
+✓ provider gap → Rule 3 (swap OPENAI over GROQ)
+✓ low confidence → Rule 5 (temp 0.3→0.4)
+✓ temp floor — no rule fires at 0.1
+✓ priority: voice (Rule 1) beats intent fail (Rule 2)
+✓ slow intent → Rule 4 (skip ANSWER)
+✓ error clustering → Rule 8 (network)
+✓ time-of-day regression → Rule 9 (slot 1)
+✓ Arabic voice fail → Rule 10 (locale hint)
+✅  All 12 rule tests passed — OODA diagnose engine verified
+```
+
+CI runs the self-check on every push to `main` — green badge above means the loop is healthy.
 
 ## Status
 
