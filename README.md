@@ -14,6 +14,7 @@ Tap the mic to go hands-free: Minima listens, executes, and speaks the result ba
 
 - **21 intents** — open app, call contact, text, email, calendar read/write, set alarm, reminder, DnD, navigate, search, translate, math, joke, flashlight, camera, music control, weather, unit/currency convert, notification triage, remember, recall, answer
 - **Multi-provider LLM** — choose between OpenAI, Groq (free tier), DeepSeek, OpenRouter, Anthropic Claude, or Google Gemini. Per-provider API keys stored locally.
+- **OODA auto-tune** — the launcher watches itself. Every 30 tasks it analyzes outcomes by intent/provider/voice-vs-text and proposes one parameter change. Attribution across batches detects regressions and auto-rolls-back. Three modes: log-only, auto-safe, or ask-me.
 - **AI-first intent classification** — LLM leads, deterministic patterns as fallback, `ANSWER` catch-all so nothing ever returns "didn't understand"
 - **3-tier memory** — STM (48h) → MTM (30d) → LTM (permanent), auto-promotion based on access patterns
 - **Personal knowledge graph** — people, places, patterns, preferences extracted from completed tasks
@@ -123,13 +124,31 @@ See `CONTRIBUTING.md`. PRs welcome — file an issue first for anything non-triv
 
 To report a vulnerability, see `SECURITY.md`.
 
+## OODA auto-tune
+
+Minima ships with a self-tuning loop ported from the `autoresearch` pattern in the supermeme trading bot. Every 30 task outcomes (or manually via "Run now" / "debug seed-ooda"), it:
+
+1. **Observes** — logs each outcome (intent, provider, confidence, latency, voice flag, success, error) into the `task_outcomes` Room table.
+2. **Orients** — buckets outcomes by intent, provider, and voice-vs-text; computes success rate and avg latency per bucket.
+3. **Decides** — runs 7 priority-ordered rules; first match wins (one change per batch). Attribution from the previous batch compares the new success rate to the pre-apply baseline.
+4. **Acts** — logs a `TuningChangeEntity` proposal. Behavior depends on apply mode:
+   - **LOG_ONLY** (default): proposal is recorded; no runtime change.
+   - **AUTO_SAFE**: proposal is applied if the param is whitelisted and delta is bounded (e.g. voice timeout ±1.5s, temperature ±0.2). If the next batch regresses >10 pp, the change is auto-rolled back.
+   - **HUMAN_QUEUE**: proposal appears as a badge on the home screen ("N tunes"); tap → dashboard → Apply/Dismiss.
+
+**Live tunables**: `voice_timeout_ms`, `provider_default`, `temperature`, `llm_rewrite_skip_intents`.
+
+**Dashboard**: type `auto-tune` or `debug ooda` in the command bar. Shows success-rate sparkline, dimension breakdowns, recent changes, per-proposal Apply/Dismiss buttons, and a "Run now" trigger.
+
+**Tests**: `./gradlew :data:testDebugUnitTest` covers each rule with plain JVM JUnit tests (see `data/src/test/java/com/minima/os/data/ooda/OodaRulesTest.kt`).
+
 ## Status
 
 - [x] v1 — intent classification, 13 capabilities, cloud model
 - [x] v2 — memory OS, context engine, proactive layer
 - [x] v2.5 — multi-provider LLM, voice input/output, 21 intents, portrait lock
-- [ ] v3 — on-device Gemma model, full design rebuild
-- [ ] v4 — multimodal, widget surface, wake word
+- [x] v3 — OODA auto-tune loop (observe/orient/decide/act, attribution + rollback, dashboard)
+- [ ] v4 — on-device Gemma model, multimodal, widget surface, wake word
 
 ## License
 
