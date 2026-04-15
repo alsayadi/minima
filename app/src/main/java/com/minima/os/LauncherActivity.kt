@@ -9,7 +9,14 @@ import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import com.minima.os.ui.onboarding.Onboarding
+import com.minima.os.ui.onboarding.hasCompletedOnboarding
 import com.minima.os.ui.theme.MinimaTheme
 import com.minima.os.ui.launcher.LauncherScreen
 import dagger.hilt.android.AndroidEntryPoint
@@ -29,7 +36,13 @@ class LauncherActivity : ComponentActivity() {
         setContent {
             MinimaTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
-                    LauncherScreen()
+                    val ctx = LocalContext.current
+                    var showOnboarding by remember { mutableStateOf(!hasCompletedOnboarding(ctx)) }
+                    if (showOnboarding) {
+                        Onboarding(onDone = { showOnboarding = false })
+                    } else {
+                        LauncherScreen()
+                    }
                 }
             }
         }
