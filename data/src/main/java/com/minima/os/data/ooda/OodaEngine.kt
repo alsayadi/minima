@@ -75,6 +75,9 @@ class OodaEngine @Inject constructor(
         }
     }
 
+    /** Live feed of un-applied proposal count — drives the home-screen badge. */
+    fun observePendingProposals() = changeDao.observePendingCount()
+
     fun applyMode(): ApplyMode {
         val v = prefs.getString(KEY_APPLY_MODE, ApplyMode.LOG_ONLY.name) ?: return ApplyMode.LOG_ONLY
         return runCatching { ApplyMode.valueOf(v) }.getOrDefault(ApplyMode.LOG_ONLY)

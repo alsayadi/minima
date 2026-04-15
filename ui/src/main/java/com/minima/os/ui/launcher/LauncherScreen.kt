@@ -115,11 +115,17 @@ fun LauncherScreen(
                     onDoubleClick = { showMemory = true; viewModel.refreshMemoryStats() },
                     onLongClick = { showSettings = true }
                 )) {
+                    val pendingCount by viewModel.pendingProposalCount.collectAsState()
                     ContextSurface(
                         contextData = contextData,
                         notificationCount = 0,
                         userName = contextData?.userName,
                         temperature = contextData?.temperature,
+                        pendingProposalCount = pendingCount,
+                        onPendingBadgeTap = {
+                            viewModel.refreshOodaSummary()
+                            showOoda = true
+                        },
                         onInsightTap = { command ->
                             viewModel.onCommandTextChanged(command)
                             viewModel.onSubmitCommand()

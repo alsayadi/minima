@@ -38,4 +38,11 @@ interface TuningChangeDao {
 
     @Query("SELECT * FROM tuning_changes ORDER BY timestamp DESC LIMIT 20")
     fun observeRecent(): Flow<List<TuningChangeEntity>>
+
+    /** Count un-applied proposals (for HUMAN_QUEUE badge). */
+    @Query("SELECT COUNT(*) FROM tuning_changes WHERE applied = 0")
+    suspend fun countPending(): Int
+
+    @Query("SELECT COUNT(*) FROM tuning_changes WHERE applied = 0")
+    fun observePendingCount(): Flow<Int>
 }

@@ -22,8 +22,10 @@ import com.minima.os.model.provider.CloudModelProvider
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -68,6 +70,11 @@ class LauncherViewModel @Inject constructor(
     // Bumped when user types "debug ooda" to request dashboard open
     private val _showOodaRequested = MutableStateFlow(0)
     val showOodaRequested: StateFlow<Int> = _showOodaRequested.asStateFlow()
+
+    // Live count of un-applied proposals — drives the badge on the greeting pill
+    val pendingProposalCount: StateFlow<Int> =
+        oodaEngine.observePendingProposals()
+            .stateIn(viewModelScope, SharingStarted.Eagerly, 0)
 
     fun refreshOodaSummary() {
         viewModelScope.launch {

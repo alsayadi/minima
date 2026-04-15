@@ -41,6 +41,8 @@ fun ContextSurface(
     onInsightTap: ((String) -> Unit)? = null,
     userName: String? = null,
     temperature: String? = null,
+    pendingProposalCount: Int = 0,
+    onPendingBadgeTap: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var tick by remember { mutableLongStateOf(System.currentTimeMillis()) }
@@ -68,20 +70,47 @@ fun ContextSurface(
             .padding(top = 20.dp)
     ) {
         // Greeting pill — sits above clock
-        Box(
-            modifier = Modifier
-                .clip(RoundedCornerShape(50))
-                .background(MinimaColors.primary.copy(alpha = 0.10f))
-                .border(1.dp, MinimaColors.primary.copy(alpha = 0.10f), RoundedCornerShape(50))
-                .padding(horizontal = 12.dp, vertical = 4.dp)
-        ) {
-            Text(
-                text = greeting,
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Medium,
-                color = MinimaColors.primary,
-                letterSpacing = 0.4.sp
-            )
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(50))
+                    .background(MinimaColors.primary.copy(alpha = 0.10f))
+                    .border(1.dp, MinimaColors.primary.copy(alpha = 0.10f), RoundedCornerShape(50))
+                    .padding(horizontal = 12.dp, vertical = 4.dp)
+            ) {
+                Text(
+                    text = greeting,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = MinimaColors.primary,
+                    letterSpacing = 0.4.sp
+                )
+            }
+            if (pendingProposalCount > 0) {
+                Row(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(50))
+                        .background(MinimaColors.primary.copy(alpha = 0.22f))
+                        .clickable { onPendingBadgeTap() }
+                        .padding(horizontal = 10.dp, vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(6.dp)
+                            .clip(CircleShape)
+                            .background(MinimaColors.primary)
+                    )
+                    Text(
+                        text = "$pendingProposalCount tune" + if (pendingProposalCount == 1) "" else "s",
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = MinimaColors.primary,
+                        letterSpacing = 0.3.sp
+                    )
+                }
+            }
         }
 
         Spacer(modifier = Modifier.height(10.dp))
