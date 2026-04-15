@@ -21,7 +21,8 @@ class OodaRulesTest {
         confidence: String = "HIGH",
         voice: Boolean = false,
         success: Boolean = true,
-        totalMs: Long = 2000
+        totalMs: Long = 2000,
+        timestamp: Long = System.currentTimeMillis() - (1..10_000).random() * 60_000L
     ) = TaskOutcomeEntity(
         taskId = "t",
         command = "cmd",
@@ -30,7 +31,8 @@ class OodaRulesTest {
         provider = provider,
         totalMs = totalMs,
         success = success,
-        voiceInitiated = voice
+        voiceInitiated = voice,
+        timestamp = timestamp
     )
 
     private fun stats(
@@ -170,6 +172,17 @@ class OodaRulesTest {
         assertNotNull(d)
         assertEquals("temperature", d!!.param)
         assertEquals("0.2", d.proposedValue)
+    }
+
+    @Test fun `rule 13 — fast cadence suggests AUTO_SAFE`() {
+        val now = System.currentTimeMillis()
+        val outcomes = (1..30).map {
+            outcome(totalMs = 4000, timestamp = now - (it * 1000L))
+        }
+        val d = OodaEngine.Rules.diagnosePure(stats(outcomes), outcomes, defaultApplied())
+        assertNotNull(d)
+        assertEquals("apply_mode_hint", d!!.param)
+        assertEquals("AUTO_SAFE", d.proposedValue)
     }
 
     @Test fun `rule 11 — oscillating param is skipped`() {

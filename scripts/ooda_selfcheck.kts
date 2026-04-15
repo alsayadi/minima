@@ -11,7 +11,8 @@ data class TaskOutcome(
     val totalMs: Long = 2000,
     val hourOfDay: Int = 12,
     val command: String = "cmd",
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+    val timestamp: Long = System.currentTimeMillis()
 )
 
 data class BucketStats(val count: Int, val successRate: Double, val avgMs: Long)
@@ -175,6 +176,18 @@ fun diagnose(
             )
         }
     }
+    // 13. Fast cadence — 30 outcomes in <60s = power user
+    if (o.size >= 30) {
+        val newest = o.maxByOrNull { it.timestamp }?.timestamp ?: 0L
+        val oldest = o.minByOrNull { it.timestamp }?.timestamp ?: 0L
+        val spanSec = ((newest - oldest) / 1000L).coerceAtLeast(1L)
+        if (spanSec < 60L) {
+            return Diagnosis(
+                "30 outcomes in ${spanSec}s", "power user — enable AUTO_SAFE",
+                "apply_mode_hint", "LOG_ONLY", "AUTO_SAFE"
+            )
+        }
+    }
     return null
 }
 
@@ -257,7 +270,9 @@ run {
 
 // Test 7: Rule 6 not at temp floor
 run {
-    val o = List(30) { TaskOutcome("ANSWER", "HIGH", "OPENAI", false, true, 1500) }
+    val now = System.currentTimeMillis()
+    val o = List(30) { i -> TaskOutcome("ANSWER", "HIGH", "OPENAI", false, true, 1500,
+        timestamp = now - i * 60_000L) }  // spread over 30 minutes, bypasses Rule 13
     val applied = defaultApplied() + ("temperature" to "0.1")
     val d = diagnose(stats(o), o, applied)
     check("temp floor — no rule fires at 0.1", d == null, "got ${d?.param}")
@@ -320,8 +335,11 @@ run {
 
 // Test 13: anti-oscillation — Rule 11 blocks flip-flopping param
 run {
-    val o = (1..15).map { TaskOutcome("ANSWER", "HIGH", "OPENAI", true, it % 3 != 0) } +
-            (1..20).map { TaskOutcome("ANSWER", "HIGH", "OPENAI", false, true) }
+    val now = System.currentTimeMillis()
+    val o = (1..15).map { i -> TaskOutcome("ANSWER", "HIGH", "OPENAI", true, i % 3 != 0,
+        timestamp = now - i * 60_000L) } +
+            (1..20).map { i -> TaskOutcome("ANSWER", "HIGH", "OPENAI", false, true,
+                timestamp = now - (15 + i) * 60_000L) }  // spread
     val churn = listOf("voice_timeout_ms", "voice_timeout_ms", "voice_timeout_ms")
     val d = diagnose(stats(o), o, defaultApplied(), churn)
     check("oscillation → Rule 11 blocks voice_timeout_ms",
@@ -341,9 +359,23 @@ run {
         "got ${d?.param}=${d?.proposedValue}")
 }
 
+// Test 15: fast cadence → Rule 13
+run {
+    val now = System.currentTimeMillis()
+    // 30 outcomes in 30s, all success but totalMs=4000 (bypasses Rule 6 stable threshold of <3000)
+    val o = (1..30).map {
+        TaskOutcome("ANSWER", "HIGH", "OPENAI", false, true, totalMs = 4000,
+            timestamp = now - (it * 1000L))
+    }
+    val d = diagnose(stats(o), o, defaultApplied())
+    check("fast cadence → Rule 13 (apply_mode_hint)",
+        d != null && d.param == "apply_mode_hint" && d.proposedValue == "AUTO_SAFE",
+        "got ${d?.param}=${d?.proposedValue}")
+}
+
 println("=====================")
 if (failed == 0) {
-    println("✅  All 14 rule tests passed — OODA diagnose engine verified")
+    println("✅  All 15 rule tests passed — OODA diagnose engine verified")
     kotlin.system.exitProcess(0)
 } else {
     println("❌  $failed test(s) failed")

@@ -412,6 +412,24 @@ class OodaEngine @Inject constructor(
                 }
             }
 
+            // Rule 13: very fast batch cadence — outcomes arriving faster than a healthy loop
+            // can analyze. If the newest and oldest outcomes in this batch span less than
+            // ~60 seconds, the user is power-using Minima. Surface a tip to enable AUTO_SAFE.
+            if (outcomes.size >= MIN_BATCH_SIZE) {
+                val newest = outcomes.maxByOrNull { it.timestamp }?.timestamp ?: 0L
+                val oldest = outcomes.minByOrNull { it.timestamp }?.timestamp ?: 0L
+                val spanSec = ((newest - oldest) / 1000L).coerceAtLeast(1L)
+                if (spanSec < 60L) {
+                    return Diagnosis(
+                        problem = "$MIN_BATCH_SIZE outcomes in only ${spanSec}s — very fast cadence",
+                        suggestion = "Enable AUTO_SAFE apply mode so the loop can keep up with you",
+                        param = "apply_mode_hint",
+                        previousValue = "LOG_ONLY",
+                        proposedValue = "AUTO_SAFE"
+                    )
+                }
+            }
+
             return null
         }
     }
