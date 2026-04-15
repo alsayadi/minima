@@ -51,6 +51,8 @@ class CloudModelProvider @Inject constructor() : ModelProvider {
     private var provider: Provider = Provider.OPENAI
     private var baseUrl: String = Provider.OPENAI.baseUrl
     private var model: String = Provider.OPENAI.defaultModel
+    // OODA-tunable. Consumed in chatComplete(). 0.0..2.0. Null = provider default.
+    @Volatile var temperatureOverride: Double? = null
 
     fun configure(apiKey: String, baseUrl: String? = null, model: String? = null) {
         this.apiKey = apiKey
@@ -183,13 +185,14 @@ Examples:
             val escapedSystem = systemPrompt.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n")
             val escapedUser = userMessage.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n")
 
+            val temp = (temperatureOverride ?: 0.3).coerceIn(0.0, 2.0)
             val (url, body, headers) = when (provider.format) {
                 Provider.Format.OPENAI -> {
-                    val b = """{"model":"$model","messages":[{"role":"system","content":"$escapedSystem"},{"role":"user","content":"$escapedUser"}],"max_tokens":1024,"temperature":0.3}"""
+                    val b = """{"model":"$model","messages":[{"role":"system","content":"$escapedSystem"},{"role":"user","content":"$escapedUser"}],"max_tokens":1024,"temperature":$temp}"""
                     Triple(baseUrl, b, mapOf("Authorization" to "Bearer $key", "Content-Type" to "application/json"))
                 }
                 Provider.Format.ANTHROPIC -> {
-                    val b = """{"model":"$model","max_tokens":1024,"system":"$escapedSystem","messages":[{"role":"user","content":"$escapedUser"}]}"""
+                    val b = """{"model":"$model","max_tokens":1024,"temperature":$temp,"system":"$escapedSystem","messages":[{"role":"user","content":"$escapedUser"}]}"""
                     Triple(baseUrl, b, mapOf(
                         "x-api-key" to key,
                         "anthropic-version" to "2023-06-01",
@@ -198,7 +201,7 @@ Examples:
                 }
                 Provider.Format.GEMINI -> {
                     val u = "$baseUrl/$model:generateContent?key=$key"
-                    val b = """{"system_instruction":{"parts":[{"text":"$escapedSystem"}]},"contents":[{"parts":[{"text":"$escapedUser"}]}],"generationConfig":{"temperature":0.3,"maxOutputTokens":1024}}"""
+                    val b = """{"system_instruction":{"parts":[{"text":"$escapedSystem"}]},"contents":[{"parts":[{"text":"$escapedUser"}]}],"generationConfig":{"temperature":$temp,"maxOutputTokens":1024}}"""
                     Triple(u, b, mapOf("Content-Type" to "application/json"))
                 }
             }

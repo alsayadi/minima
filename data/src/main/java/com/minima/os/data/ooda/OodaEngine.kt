@@ -52,7 +52,9 @@ class OodaEngine @Inject constructor(
         /** Params that are safe to auto-apply when in AUTO_SAFE mode. */
         private val SAFE_PARAMS = setOf(
             "voice_timeout_ms",
-            "provider_default",  // swap to a better-performing provider the user already has a key for
+            "provider_default",
+            "temperature",
+            "llm_rewrite_skip_intents"
         )
 
         /** Params where we accept the proposal only if the delta is within range. */
@@ -63,6 +65,12 @@ class OodaEngine @Inject constructor(
                 kotlin.math.abs(n - p) <= 1500  // max 1.5s jump per batch
             }
             "provider_default" -> prev != next && next.isNotBlank()
+            "temperature" -> {
+                val p = prev.toDoubleOrNull() ?: return false
+                val n = next.toDoubleOrNull() ?: return false
+                n in 0.0..2.0 && kotlin.math.abs(n - p) <= 0.2  // gentle nudge
+            }
+            "llm_rewrite_skip_intents" -> next.isNotBlank()  // CSV list, always safe to replace
             else -> false
         }
     }
@@ -319,32 +327,91 @@ class OodaEngine @Inject constructor(
             }
         }
 
-        // Rule 4: latency spike
+        // Rule 4: latency spike on a voice-capable intent — propose adding it to skip list
         if (stats.avgTotalMs > 6000) {
             val slowestIntent = stats.byIntent
                 .filter { it.value.count >= 5 }
                 .maxByOrNull { it.value.avgMs }
             if (slowestIntent != null && slowestIntent.value.avgMs > 5000) {
+                val currentSkip = prefs.getString(
+                    KEY_APPLIED_PREFIX + "llm_rewrite_skip_intents",
+                    "GET_WEATHER,CREATE_CALENDAR_EVENT,FLASHLIGHT,SET_ALARM,OPEN_CAMERA,MUSIC_CONTROL"
+                ) ?: ""
+                val skipSet = currentSkip.split(",").map { it.trim() }.filter { it.isNotEmpty() }.toMutableSet()
+                if (slowestIntent.key !in skipSet) {
+                    skipSet.add(slowestIntent.key)
+                    return Diagnosis(
+                        problem = "Intent ${slowestIntent.key} averages ${slowestIntent.value.avgMs}ms (batch avg ${stats.avgTotalMs}ms)",
+                        suggestion = "Skip LLM rewrite for ${slowestIntent.key}; speak capability result directly",
+                        param = "llm_rewrite_skip_intents",
+                        previousValue = currentSkip,
+                        proposedValue = skipSet.joinToString(",")
+                    )
+                }
+            }
+        }
+
+        // Rule 5: low LLM confidence on majority of tasks — nudge temperature up (more flexible)
+        val lowConf = outcomes.count { it.confidence == "LOW" }.toDouble() / outcomes.size.coerceAtLeast(1)
+        if (lowConf > 0.30) {
+            val currentTemp = prefs.getString(KEY_APPLIED_PREFIX + "temperature", "0.3") ?: "0.3"
+            val t = currentTemp.toDoubleOrNull() ?: 0.3
+            val proposed = (t + 0.1).coerceIn(0.1, 0.7)
+            if (kotlin.math.abs(proposed - t) > 0.001) {
                 return Diagnosis(
-                    problem = "Intent ${slowestIntent.key} averages ${slowestIntent.value.avgMs}ms (batch avg ${stats.avgTotalMs}ms)",
-                    suggestion = "Skip LLM rewrite for this intent; speak capability result directly",
-                    param = "llm_rewrite_skip_${slowestIntent.key}",
-                    previousValue = "false",
-                    proposedValue = "true"
+                    problem = "${(lowConf * 100).toInt()}% of classifications have LOW confidence",
+                    suggestion = "Nudge temperature up so the model explores more intent mappings",
+                    param = "temperature",
+                    previousValue = currentTemp,
+                    proposedValue = String.format(java.util.Locale.US, "%.1f", proposed)
                 )
             }
         }
 
-        // Rule 5: low LLM confidence on majority of tasks
-        val lowConf = outcomes.count { it.confidence == "LOW" }.toDouble() / outcomes.size.coerceAtLeast(1)
-        if (lowConf > 0.30) {
-            return Diagnosis(
-                problem = "${(lowConf * 100).toInt()}% of classifications have LOW confidence",
-                suggestion = "Add more few-shot examples to the classifier prompt",
-                param = "classifier_examples",
-                previousValue = "current",
-                proposedValue = "expand"
-            )
+        // Rule 6: high LLM confidence AND small latency — try pulling temperature DOWN for determinism
+        val highConf = outcomes.count { it.confidence == "HIGH" }.toDouble() / outcomes.size.coerceAtLeast(1)
+        if (highConf > 0.90 && stats.avgTotalMs < 3000 && stats.successRate > 0.95) {
+            val currentTemp = prefs.getString(KEY_APPLIED_PREFIX + "temperature", "0.3") ?: "0.3"
+            val t = currentTemp.toDoubleOrNull() ?: 0.3
+            val proposed = (t - 0.1).coerceIn(0.1, 0.7)
+            if (kotlin.math.abs(proposed - t) > 0.001 && t > 0.15) {
+                return Diagnosis(
+                    problem = "${(highConf * 100).toInt()}% HIGH confidence, system is stable",
+                    suggestion = "Pull temperature down for more deterministic classification",
+                    param = "temperature",
+                    previousValue = currentTemp,
+                    proposedValue = String.format(java.util.Locale.US, "%.1f", proposed)
+                )
+            }
+        }
+
+        // Rule 7: voice-initiated tasks spending too much time in execution → skip rewrite for the worst
+        val voiceByIntent = outcomes.filter { it.voiceInitiated }
+            .groupBy { it.intent }
+            .mapValues { (_, rows) ->
+                BucketStats(
+                    count = rows.size,
+                    successRate = rows.count { it.success }.toDouble() / rows.size,
+                    avgMs = rows.sumOf { it.totalMs } / rows.size.coerceAtLeast(1)
+                )
+            }
+            .filter { it.value.count >= 5 && it.value.avgMs > 4000 }
+        val worstVoiceIntent = voiceByIntent.maxByOrNull { it.value.avgMs }
+        if (worstVoiceIntent != null) {
+            val currentSkip = prefs.getString(
+                KEY_APPLIED_PREFIX + "llm_rewrite_skip_intents", ""
+            ) ?: ""
+            val skipSet = currentSkip.split(",").map { it.trim() }.filter { it.isNotEmpty() }.toMutableSet()
+            if (worstVoiceIntent.key !in skipSet) {
+                skipSet.add(worstVoiceIntent.key)
+                return Diagnosis(
+                    problem = "Voice ${worstVoiceIntent.key} averages ${worstVoiceIntent.value.avgMs}ms — user waits too long",
+                    suggestion = "Skip LLM rewrite for voice ${worstVoiceIntent.key}",
+                    param = "llm_rewrite_skip_intents",
+                    previousValue = currentSkip,
+                    proposedValue = skipSet.joinToString(",")
+                )
+            }
         }
 
         // Everything is fine — but we still log the stats

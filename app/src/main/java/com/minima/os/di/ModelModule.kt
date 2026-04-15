@@ -45,6 +45,10 @@ object ModelModule {
         if (key != null) {
             cp.configureProvider(selected, key, model)
         }
+        // OODA-tuned temperature
+        oodaPrefs.getString("applied_temperature", null)?.toDoubleOrNull()?.let {
+            cp.temperatureOverride = it.coerceIn(0.0, 2.0)
+        }
         return cp
     }
 }

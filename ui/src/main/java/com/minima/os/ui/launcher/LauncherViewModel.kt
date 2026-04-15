@@ -252,17 +252,27 @@ class LauncherViewModel @Inject constructor(
                     ?: rawData["app"]?.let { "Opening $it" }
                     ?: "Done"
 
-                val naturalReply = try {
-                    val dataBlock = rawData.entries.joinToString("; ") { "${it.key}=${it.value}" }
-                    val prompt = """User said: "$text"
+                // OODA-tunable: skip LLM rewrite for intents where the raw answer is already natural
+                val intentName = latest?.intent?.type?.name.orEmpty()
+                val oodaPrefs = context.getSharedPreferences("minima_ooda", Context.MODE_PRIVATE)
+                val skipRewriteIntents = oodaPrefs
+                    .getString("applied_llm_rewrite_skip_intents", "GET_WEATHER,CREATE_CALENDAR_EVENT,FLASHLIGHT,SET_ALARM,OPEN_CAMERA,MUSIC_CONTROL")
+                    ?.split(",")?.map { it.trim() }?.toSet() ?: emptySet()
+
+                val toSpeak = if (intentName in skipRewriteIntents && rawFallback.isNotBlank()) {
+                    rawFallback
+                } else {
+                    val naturalReply = try {
+                        val dataBlock = rawData.entries.joinToString("; ") { "${it.key}=${it.value}" }
+                        val prompt = """User said: "$text"
 Task result data: $dataBlock
 Success: ${lastStep?.result?.success ?: false}
 
 Respond in ONE short warm sentence as if speaking to a friend. No markdown, no lists, no quotes. Under 20 words. If it's a question, answer it. If it's an action, acknowledge what you did naturally."""
-                    cloudModelProvider.draft(prompt).trim().removeSurrounding("\"")
-                } catch (_: Exception) { rawFallback }
-
-                val toSpeak = if (naturalReply.isBlank()) rawFallback else naturalReply
+                        cloudModelProvider.draft(prompt).trim().removeSurrounding("\"")
+                    } catch (_: Exception) { rawFallback }
+                    if (naturalReply.isBlank()) rawFallback else naturalReply
+                }
                 voiceManager?.speakFinal(toSpeak) {
                     // After TTS finishes, reopen mic for follow-up conversation
                     if (conversationMode) {
