@@ -1,21 +1,62 @@
 package com.minima.os.service
 
+import android.app.PendingIntent
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
+import android.util.Log
+import com.minima.os.core.bus.NotificationHub
 import com.minima.os.core.model.NotificationCategory
 import com.minima.os.core.model.NotificationInfo
 import com.minima.os.core.model.NotificationPriority
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import java.util.concurrent.ConcurrentHashMap
 
 @AndroidEntryPoint
 class MinimaNotificationListener : NotificationListenerService() {
 
+    // Kept in-process so we can resolve a key → original StatusBarNotification
+    // on demand when the UI wants to fire a contentIntent. The hub itself only
+    // carries the serializable NotificationInfo, not the platform object.
+    private val byKey = ConcurrentHashMap<String, StatusBarNotification>()
+
+    private val binder = object : NotificationHub.Binder {
+        override fun dismiss(key: String) {
+            runCatching { cancelNotification(key) }
+                .onFailure { Log.w(TAG, "dismiss($key) failed: ${it.message}") }
+            byKey.remove(key)
+        }
+
+        override fun open(key: String) {
+            val sbn = byKey[key] ?: return
+            val pi: PendingIntent = sbn.notification?.contentIntent ?: return
+            runCatching { pi.send() }
+                .onFailure { Log.w(TAG, "open($key) failed: ${it.message}") }
+        }
+    }
+
+    override fun onListenerConnected() {
+        super.onListenerConnected()
+        NotificationHub.bind(binder)
+        // Seed with whatever's already in the shade so the UI isn't empty on cold boot.
+        runCatching {
+            activeNotifications?.forEach { handlePosted(it) }
+        }
+    }
+
+    override fun onListenerDisconnected() {
+        NotificationHub.unbind(binder)
+        super.onListenerDisconnected()
+    }
+
     override fun onNotificationPosted(sbn: StatusBarNotification) {
+        handlePosted(sbn)
+    }
+
+    private fun handlePosted(sbn: StatusBarNotification) {
         val notification = sbn.notification ?: return
         val extras = notification.extras
+
+        byKey[sbn.key] = sbn
 
         val info = NotificationInfo(
             id = sbn.key,
@@ -30,14 +71,12 @@ class MinimaNotificationListener : NotificationListenerService() {
             actions = notification.actions?.map { it.title.toString() } ?: emptyList()
         )
 
-        val current = _notifications.value.toMutableList()
-        current.removeAll { it.id == info.id }
-        current.add(0, info)
-        _notifications.value = current
+        NotificationHub.upsert(info)
     }
 
     override fun onNotificationRemoved(sbn: StatusBarNotification) {
-        _notifications.value = _notifications.value.filter { it.id != sbn.key }
+        byKey.remove(sbn.key)
+        NotificationHub.remove(sbn.key)
     }
 
     private fun categorize(category: String?, packageName: String): NotificationCategory {
@@ -68,9 +107,6 @@ class MinimaNotificationListener : NotificationListenerService() {
     }
 
     companion object {
-        private val _notifications = MutableStateFlow<List<NotificationInfo>>(emptyList())
-        val notifications: StateFlow<List<NotificationInfo>> = _notifications.asStateFlow()
-
-        fun getActiveNotifications(): List<NotificationInfo> = _notifications.value
+        private const val TAG = "MinimaNotifListener"
     }
 }

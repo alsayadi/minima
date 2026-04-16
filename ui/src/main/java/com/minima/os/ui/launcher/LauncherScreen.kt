@@ -174,6 +174,11 @@ fun LauncherScreen(
                     Spacer(modifier = Modifier.height(16.dp))
                 }
 
+                // Notification surface — shows what the user would otherwise pull
+                // down the shade for, inline in the task feed.
+                com.minima.os.ui.notifications.NotificationStrip()
+                Spacer(modifier = Modifier.height(12.dp))
+
                 // Task feed
                 if (uiState.taskHistory.isNotEmpty()) {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
