@@ -58,6 +58,11 @@ class LauncherViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(LauncherUiState())
     val uiState: StateFlow<LauncherUiState> = _uiState.asStateFlow()
 
+    // Task IDs the user has dismissed from the feed. View-layer only — the
+    // underlying taskExecutor.taskHistory (append-only action log) is
+    // untouched. This just hides cards so users can keep the feed tidy.
+    private val _dismissedTaskIds = MutableStateFlow<Set<String>>(emptySet())
+
     private val _contextData = MutableStateFlow<ContextEngine.ContextData?>(null)
     val contextData: StateFlow<ContextEngine.ContextData?> = _contextData.asStateFlow()
 
@@ -136,8 +141,16 @@ class LauncherViewModel @Inject constructor(
         }
 
         viewModelScope.launch {
-            taskExecutor.taskHistory.collect { history ->
-                _uiState.value = _uiState.value.copy(taskHistory = history)
+            // Combine the source-of-truth history with the locally-dismissed
+            // set so the feed reacts both to new tasks landing and to the user
+            // tapping X on an existing card.
+            kotlinx.coroutines.flow.combine(
+                taskExecutor.taskHistory,
+                _dismissedTaskIds
+            ) { history, dismissed ->
+                history.filter { it.id !in dismissed }
+            }.collect { visible ->
+                _uiState.value = _uiState.value.copy(taskHistory = visible)
             }
         }
 
@@ -438,6 +451,15 @@ Respond in ONE short warm sentence as if speaking to a friend. No markdown, no l
 
     fun dismissProactiveCard(id: String) {
         _proactiveCards.value = _proactiveCards.value.filter { it.id != id }
+    }
+
+    /**
+     * Hide a task card from the feed. The ActionRecord log in Room is
+     * untouched — this is presentation-only, so the transparency screen still
+     * shows every executed step.
+     */
+    fun dismissTask(id: String) {
+        _dismissedTaskIds.value = _dismissedTaskIds.value + id
     }
 
     fun onSensitivityChanged(sensitivity: String) {

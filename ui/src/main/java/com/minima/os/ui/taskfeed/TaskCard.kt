@@ -38,7 +38,8 @@ import com.minima.os.ui.theme.MinimaColors
 @Composable
 fun TaskCard(
     task: Task,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onDismiss: (() -> Unit)? = null
 ) {
     val isActive = task.state in listOf(
         TaskState.EXECUTING, TaskState.CLASSIFYING, TaskState.PLANNING
@@ -100,12 +101,36 @@ fun TaskCard(
                     }
                 }
             } else {
-                Icon(
-                    statusIcon,
-                    contentDescription = null,
-                    tint = statusColor,
-                    modifier = Modifier.size(18.dp)
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Icon(
+                        statusIcon,
+                        contentDescription = null,
+                        tint = statusColor,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    // Per-card dismiss — only shown once the task has settled
+                    // so users never accidentally cancel a running step by
+                    // tapping X. The log record stays; this just hides the card.
+                    if (onDismiss != null) {
+                        Box(
+                            modifier = Modifier
+                                .size(22.dp)
+                                .clip(CircleShape)
+                                .clickable { onDismiss() },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                Icons.Rounded.Close,
+                                contentDescription = "Dismiss",
+                                tint = MinimaColors.onSurfaceVariant.copy(alpha = 0.45f),
+                                modifier = Modifier.size(14.dp)
+                            )
+                        }
+                    }
+                }
             }
         }
 

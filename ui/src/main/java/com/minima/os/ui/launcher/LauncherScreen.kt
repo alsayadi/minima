@@ -178,7 +178,10 @@ fun LauncherScreen(
                 if (uiState.taskHistory.isNotEmpty()) {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         uiState.taskHistory.take(5).forEach { task ->
-                            TaskCard(task = task)
+                            TaskCard(
+                                task = task,
+                                onDismiss = { viewModel.dismissTask(task.id) }
+                            )
                         }
                     }
                     Spacer(modifier = Modifier.height(12.dp))
