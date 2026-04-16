@@ -34,6 +34,7 @@ fun SettingsSheet(
 ) {
     val context = LocalContext.current
     val prefs = context.getSharedPreferences("minima_prefs", Context.MODE_PRIVATE)
+    val secure = remember { com.minima.os.data.security.SecurePrefs.get(context) }
     var selectedProvider by remember {
         mutableStateOf(
             try { Provider.valueOf(prefs.getString("llm_provider", Provider.OPENAI.name) ?: Provider.OPENAI.name) }
@@ -42,7 +43,9 @@ fun SettingsSheet(
     }
     var apiKey by remember(selectedProvider) {
         mutableStateOf(
-            prefs.getString("api_key_${selectedProvider.name}", null)
+            secure.getString("api_key_${selectedProvider.name}")
+                ?: secure.getString("openai_api_key").takeIf { selectedProvider == Provider.OPENAI }
+                ?: prefs.getString("api_key_${selectedProvider.name}", null)
                 ?: (if (selectedProvider == Provider.OPENAI) prefs.getString("openai_api_key", "") else "")
                 ?: ""
         )
@@ -347,17 +350,22 @@ fun SettingsSheet(
             // Save button
             Button(
                 onClick = {
+                    // Non-secret prefs → plain
                     prefs.edit()
                         .putString("llm_provider", selectedProvider.name)
-                        .putString("api_key_${selectedProvider.name}", apiKey.trim())
                         .putString("llm_model_${selectedProvider.name}", customModel.trim())
                         .putString("sensitivity", sensitivity)
-                        // legacy key for backward compat
-                        .apply {
-                            if (selectedProvider == Provider.OPENAI) {
-                                putString("openai_api_key", apiKey.trim())
-                            }
-                        }
+                        .apply()
+                    // Secrets → encrypted
+                    secure.putString("api_key_${selectedProvider.name}", apiKey.trim())
+                    if (selectedProvider == Provider.OPENAI) {
+                        // legacy slot kept inside the encrypted store for any old readers
+                        secure.putString("openai_api_key", apiKey.trim())
+                    }
+                    // Scrub any legacy plaintext copies
+                    prefs.edit()
+                        .remove("api_key_${selectedProvider.name}")
+                        .remove("openai_api_key")
                         .apply()
                     oodaPrefs.edit().putString("apply_mode", applyMode).apply()
                     onApiKeySaved(apiKey.trim())

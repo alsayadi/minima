@@ -33,6 +33,7 @@ dependencies {
     ksp(libs.room.compiler)
 
     implementation(libs.datastore)
+    implementation(libs.security.crypto)
     implementation(libs.coroutines.android)
     implementation(libs.serialization.json)
 

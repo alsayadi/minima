@@ -42,7 +42,11 @@ fun hasCompletedOnboarding(context: Context): Boolean {
     val p = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
     if (p.getBoolean(KEY_DONE, false)) return true
     val provider = p.getString("llm_provider", Provider.OPENAI.name) ?: Provider.OPENAI.name
-    return !p.getString("api_key_$provider", null).isNullOrBlank()
+    val secure = com.minima.os.data.security.SecurePrefs.get(context)
+    return !secure.getString("api_key_$provider").isNullOrBlank()
+        || !secure.getString("openai_api_key").isNullOrBlank()
+        // Legacy fallback — keys may still be mid-migration
+        || !p.getString("api_key_$provider", null).isNullOrBlank()
         || !p.getString("openai_api_key", null).isNullOrBlank()
 }
 
@@ -94,11 +98,13 @@ fun Onboarding(onDone: () -> Unit) {
                             val prefs = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
                             prefs.edit()
                                 .putString("llm_provider", provider.name)
-                                .putString("api_key_${provider.name}", apiKey.trim())
-                                .apply {
-                                    if (provider == Provider.OPENAI) putString("openai_api_key", apiKey.trim())
-                                }
                                 .apply()
+                            // API key → encrypted store
+                            val secure = com.minima.os.data.security.SecurePrefs.get(ctx)
+                            secure.putString("api_key_${provider.name}", apiKey.trim())
+                            if (provider == Provider.OPENAI) {
+                                secure.putString("openai_api_key", apiKey.trim())
+                            }
                         }
                         markCompleted(ctx)
                         onDone()
