@@ -22,3 +22,4 @@ release/
 *.jks
 secrets.properties
 api_keys.properties
+.kotlin/

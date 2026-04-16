@@ -146,6 +146,17 @@ class LauncherViewModel @Inject constructor(
                 _uiState.value = _uiState.value.copy(pendingApproval = request)
             }
         }
+
+        // Pick up commands forwarded from ShareReceiverActivity. The bus has
+        // replay=1 so this still fires on a cold process start where the share
+        // Activity posted the command before this VM was even constructed.
+        viewModelScope.launch {
+            com.minima.os.core.bus.PendingCommandBus.flow.collect { cmd ->
+                _uiState.value = _uiState.value.copy(commandText = cmd)
+                onSubmitCommand()
+                com.minima.os.core.bus.PendingCommandBus.consumed()
+            }
+        }
     }
 
     private fun loadInstalledApps() {

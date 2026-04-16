@@ -15,6 +15,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import com.minima.os.core.bus.PendingCommandBus
 import com.minima.os.ui.onboarding.Onboarding
 import com.minima.os.ui.onboarding.hasCompletedOnboarding
 import com.minima.os.ui.theme.MinimaTheme
@@ -32,6 +33,7 @@ class LauncherActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         requestHomeRole()
+        routeIncomingCommand(intent)
 
         setContent {
             MinimaTheme {
@@ -46,6 +48,27 @@ class LauncherActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        // singleTask launch mode → an existing Launcher receives new intents here.
+        // Most importantly: shares from ShareReceiverActivity arrive this way.
+        setIntent(intent)
+        routeIncomingCommand(intent)
+    }
+
+    /**
+     * Lifts a command piggy-backed on the launch Intent onto the process-level
+     * [PendingCommandBus] so [com.minima.os.ui.launcher.LauncherViewModel] can
+     * pick it up whether the process was cold or warm.
+     */
+    private fun routeIncomingCommand(intent: Intent?) {
+        val cmd = intent?.getStringExtra(ShareReceiverActivity.EXTRA_SHARED_COMMAND) ?: return
+        if (cmd.isBlank()) return
+        PendingCommandBus.post(cmd)
+        // Consume the extra so a subsequent onNewIntent without a command doesn't re-fire it.
+        intent.removeExtra(ShareReceiverActivity.EXTRA_SHARED_COMMAND)
     }
 
     private fun requestHomeRole() {

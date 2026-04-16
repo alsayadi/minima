@@ -34,25 +34,18 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.minima.os.agent.executor.TaskExecutor
 import com.minima.os.ui.theme.MinimaColors
 import com.minima.os.ui.theme.MinimaTheme
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.launch
-import javax.inject.Inject
 
 /**
  * Receives ACTION_SEND from any app. Shows a bottom sheet with quick actions
- * (summarize / translate / explain / save memory / ask anything), then hands
- * the work off to TaskExecutor. Activity finishes once the task is dispatched.
+ * (summarize / translate / explain / save memory / ask anything), then forwards
+ * the command into LauncherActivity where the normal command pipeline runs it
+ * and the result appears in the task feed.
  */
 @AndroidEntryPoint
 class ShareReceiverActivity : ComponentActivity() {
-
-    @Inject lateinit var taskExecutor: TaskExecutor
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -69,13 +62,10 @@ class ShareReceiverActivity : ComponentActivity() {
                     sharedText = shared,
                     onAction = { prompt ->
                         val combined = buildPrompt(prompt, shared)
-                        // Fire-and-forget in a process-lifetime scope so the task survives
-                        // this activity's finish() below.
-                        @OptIn(kotlinx.coroutines.DelicateCoroutinesApi::class)
-                        GlobalScope.launch(Dispatchers.IO + SupervisorJob()) {
-                            runCatching { taskExecutor.execute(combined) }
-                        }
-                        // Jump into the launcher so the user sees the answer arrive in the feed
+                        // Single execution path: forward the command to LauncherActivity.
+                        // Its ViewModel collects from PendingCommandBus and submits, so
+                        // the task lands in the feed with proper classify/plan/execute
+                        // state — rather than being fired twice (once here, once there).
                         openLauncherWithPrefill(combined)
                         finish()
                     },
