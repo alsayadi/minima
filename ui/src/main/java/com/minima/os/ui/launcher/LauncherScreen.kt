@@ -50,6 +50,7 @@ fun LauncherScreen(
     var showSettings by remember { mutableStateOf(false) }
     var showMemory by remember { mutableStateOf(false) }
     var showOoda by remember { mutableStateOf(false) }
+    var showHistory by remember { mutableStateOf(false) }
 
     val oodaRequest by viewModel.showOodaRequested.collectAsState()
     LaunchedEffect(oodaRequest) {
@@ -212,6 +213,11 @@ fun LauncherScreen(
                 },
                 isListening = uiState.isListening,
                 voiceRms = voiceRms,
+                onHistoryClick = {
+                    viewModel.refreshHistory()
+                    showHistory = true
+                    haptics.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+                },
                 modifier = Modifier.fillMaxWidth()
             )
             if (uiState.voiceStatus.isNotBlank()) {
@@ -283,6 +289,29 @@ fun LauncherScreen(
                 onDismiss = { showSettings = false },
                 onApiKeySaved = { key -> viewModel.onApiKeySaved(key) },
                 onSensitivityChanged = { viewModel.onSensitivityChanged(it) }
+            )
+        }
+
+        // Command history overlay
+        AnimatedVisibility(
+            visible = showHistory,
+            enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
+            exit = slideOutVertically(targetOffsetY = { it }) + fadeOut()
+        ) {
+            val history by viewModel.commandHistory.collectAsState()
+            com.minima.os.ui.history.CommandHistorySheet(
+                items = history,
+                onRerun = { cmd ->
+                    showHistory = false
+                    viewModel.rerunCommand(cmd)
+                },
+                onEdit = { cmd ->
+                    showHistory = false
+                    viewModel.onCommandTextChanged(cmd)
+                },
+                onDelete = { viewModel.deleteHistory(it) },
+                onClear = { viewModel.clearHistory() },
+                onDismiss = { showHistory = false }
             )
         }
 

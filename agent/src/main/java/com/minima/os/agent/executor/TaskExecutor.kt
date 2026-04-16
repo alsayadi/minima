@@ -8,6 +8,7 @@ import com.minima.os.data.memory.MemoryManager
 import com.minima.os.agent.planner.Planner
 import com.minima.os.core.executor.CapabilityExecutor
 import com.minima.os.core.model.*
+import com.minima.os.data.dao.CommandHistoryDao
 import com.minima.os.data.dao.OutcomeDao
 import com.minima.os.data.dao.TaskDao
 import com.minima.os.data.entity.TaskEntity
@@ -35,7 +36,8 @@ class TaskExecutor @Inject constructor(
     private val memoryManager: MemoryManager,
     private val memoryExtractor: MemoryExtractor,
     private val outcomeDao: OutcomeDao,
-    private val oodaEngine: OodaEngine
+    private val oodaEngine: OodaEngine,
+    private val historyDao: CommandHistoryDao
 ) {
 
     /** Set by LauncherViewModel before calling execute() to tag the outcome. */
@@ -230,6 +232,15 @@ class TaskExecutor @Inject constructor(
             }
 
             logOutcome(task, execStart, classifyMs, isVoice)
+            runCatching {
+                if (!task.input.startsWith("debug ")) {  // don't pollute history with debug commands
+                    historyDao.upsert(
+                        text = task.input.take(200),
+                        intent = task.intent?.type?.name,
+                        success = task.state == TaskState.COMPLETED
+                    )
+                }
+            }
             return task
 
         } catch (e: Exception) {

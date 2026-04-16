@@ -1,7 +1,10 @@
 package com.minima.os.ui.commandbar
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -17,6 +20,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -39,6 +43,7 @@ fun CommandBar(
     onVoiceClick: () -> Unit = {},
     isListening: Boolean = false,
     voiceRms: Float = 0f,
+    onHistoryClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Row(
@@ -50,10 +55,19 @@ fun CommandBar(
             .padding(horizontal = 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Left: Search / Apps icon
-        IconButton(
-            onClick = if (text.isBlank()) onAppsClick else onSubmit,
-            modifier = Modifier.size(48.dp)
+        // Left: Search / Apps icon (long-press → command history)
+        @OptIn(ExperimentalFoundationApi::class)
+        Box(
+            modifier = Modifier
+                .size(48.dp)
+                .clip(CircleShape)
+                .combinedClickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null,
+                    onClick = { if (text.isBlank()) onAppsClick() else onSubmit() },
+                    onLongClick = onHistoryClick
+                ),
+            contentAlignment = Alignment.Center
         ) {
             if (isProcessing) {
                 CircularProgressIndicator(

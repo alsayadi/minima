@@ -33,4 +33,7 @@ object AppModule {
 
     @Provides
     fun provideTuningChangeDao(db: MinimaDatabase) = db.tuningChangeDao()
+
+    @Provides
+    fun provideCommandHistoryDao(db: MinimaDatabase) = db.commandHistoryDao()
 }

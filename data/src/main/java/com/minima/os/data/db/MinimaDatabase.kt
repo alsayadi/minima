@@ -5,11 +5,13 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import com.minima.os.data.dao.ActionDao
+import com.minima.os.data.dao.CommandHistoryDao
 import com.minima.os.data.dao.MemoryDao
 import com.minima.os.data.dao.OutcomeDao
 import com.minima.os.data.dao.TaskDao
 import com.minima.os.data.dao.TuningChangeDao
 import com.minima.os.data.entity.ActionRecordEntity
+import com.minima.os.data.entity.CommandHistoryEntity
 import com.minima.os.data.entity.MemoryEntity
 import com.minima.os.data.entity.PatternEntity
 import com.minima.os.data.entity.PersonEntity
@@ -27,9 +29,10 @@ import com.minima.os.data.entity.TuningChangeEntity
         PlaceEntity::class,
         PatternEntity::class,
         TaskOutcomeEntity::class,
-        TuningChangeEntity::class
+        TuningChangeEntity::class,
+        CommandHistoryEntity::class
     ],
-    version = 4,
+    version = 5,
     exportSchema = false
 )
 abstract class MinimaDatabase : RoomDatabase() {
@@ -39,6 +42,7 @@ abstract class MinimaDatabase : RoomDatabase() {
     abstract fun memoryDao(): MemoryDao
     abstract fun outcomeDao(): OutcomeDao
     abstract fun tuningChangeDao(): TuningChangeDao
+    abstract fun commandHistoryDao(): CommandHistoryDao
 
     companion object {
         fun create(context: Context): MinimaDatabase {

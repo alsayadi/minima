@@ -16,6 +16,8 @@ import com.minima.os.data.entity.PlaceEntity
 import com.minima.os.data.memory.ContextEngine
 import com.minima.os.data.memory.MemoryManager
 import com.minima.os.data.memory.MemoryStats
+import com.minima.os.data.dao.CommandHistoryDao
+import com.minima.os.data.entity.CommandHistoryEntity
 import com.minima.os.data.memory.ProactiveEngine
 import com.minima.os.data.ooda.OodaEngine
 import com.minima.os.model.provider.CloudModelProvider
@@ -49,6 +51,7 @@ class LauncherViewModel @Inject constructor(
     private val contextEngine: ContextEngine,
     private val proactiveEngine: ProactiveEngine,
     private val oodaEngine: OodaEngine,
+    private val commandHistoryDao: CommandHistoryDao,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
 
@@ -179,6 +182,35 @@ class LauncherViewModel @Inject constructor(
     /** Emits one bump per voice-result arrival — UI layer subscribes to fire a haptic. */
     private val _hapticTick = MutableStateFlow(0)
     val hapticTick: StateFlow<Int> = _hapticTick.asStateFlow()
+
+    private val _commandHistory = MutableStateFlow<List<CommandHistoryEntity>>(emptyList())
+    val commandHistory: StateFlow<List<CommandHistoryEntity>> = _commandHistory.asStateFlow()
+
+    fun refreshHistory() {
+        viewModelScope.launch {
+            try { _commandHistory.value = commandHistoryDao.getRecent(50) }
+            catch (_: Exception) {}
+        }
+    }
+
+    fun deleteHistory(text: String) {
+        viewModelScope.launch {
+            runCatching { commandHistoryDao.delete(text) }
+            refreshHistory()
+        }
+    }
+
+    fun clearHistory() {
+        viewModelScope.launch {
+            runCatching { commandHistoryDao.clear() }
+            refreshHistory()
+        }
+    }
+
+    fun rerunCommand(text: String) {
+        _uiState.value = _uiState.value.copy(commandText = text)
+        onSubmitCommand()
+    }
 
     private fun ensureVoiceManager(): com.minima.os.ui.voice.VoiceManager {
         return voiceManager ?: com.minima.os.ui.voice.VoiceManager(context).also {
