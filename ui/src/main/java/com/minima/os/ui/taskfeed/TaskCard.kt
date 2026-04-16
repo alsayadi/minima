@@ -1,11 +1,19 @@
 package com.minima.os.ui.taskfeed
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
+import android.content.Intent
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.ContentCopy
+import androidx.compose.material.icons.outlined.IosShare
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.AutoAwesome
@@ -15,6 +23,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -153,6 +163,13 @@ fun TaskCard(
                     )
                 }
             }
+
+            // Copy / Share actions for answers — the 'Summarize then paste in Slack'
+            // flow is the primary use case, so make that one tap.
+            if (resultText.isNotBlank()) {
+                Spacer(modifier = Modifier.height(12.dp))
+                TaskResultActions(resultText = resultText)
+            }
         } else {
             // Status row with dot
             Row(
@@ -178,4 +195,79 @@ fun TaskCard(
             }
         }
     }
+}
+
+/**
+ * Tiny action row under a completed answer. Keeps the visual weight low so
+ * it doesn't compete with the answer text, but puts Copy and Share one tap
+ * away for the common "summarize → paste elsewhere" flow.
+ */
+@Composable
+private fun TaskResultActions(resultText: String) {
+    val ctx = LocalContext.current
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.padding(start = 14.dp)
+    ) {
+        ResultActionChip(
+            icon = Icons.Outlined.ContentCopy,
+            label = "Copy",
+        ) {
+            copyToClipboard(ctx, resultText)
+            Toast.makeText(ctx, "Copied", Toast.LENGTH_SHORT).show()
+        }
+        ResultActionChip(
+            icon = Icons.Outlined.IosShare,
+            label = "Share",
+        ) {
+            shareText(ctx, resultText)
+        }
+    }
+}
+
+@Composable
+private fun ResultActionChip(
+    icon: ImageVector,
+    label: String,
+    onClick: () -> Unit,
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        modifier = Modifier
+            .clip(RoundedCornerShape(8.dp))
+            .background(Color.White.copy(alpha = 0.04f))
+            .clickable { onClick() }
+            .padding(horizontal = 10.dp, vertical = 6.dp)
+    ) {
+        Icon(
+            icon,
+            contentDescription = label,
+            tint = MinimaColors.onSurfaceVariant,
+            modifier = Modifier.size(13.dp)
+        )
+        Text(
+            text = label,
+            color = MinimaColors.onSurfaceVariant,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Medium
+        )
+    }
+}
+
+private fun copyToClipboard(ctx: Context, text: String) {
+    val cm = ctx.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
+    cm?.setPrimaryClip(ClipData.newPlainText("Minima", text))
+}
+
+private fun shareText(ctx: Context, text: String) {
+    val send = Intent(Intent.ACTION_SEND).apply {
+        type = "text/plain"
+        putExtra(Intent.EXTRA_TEXT, text)
+    }
+    val chooser = Intent.createChooser(send, null).apply {
+        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    }
+    runCatching { ctx.startActivity(chooser) }
 }

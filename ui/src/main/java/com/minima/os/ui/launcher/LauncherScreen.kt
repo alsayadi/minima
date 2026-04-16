@@ -246,6 +246,24 @@ fun LauncherScreen(
             }
         }
 
+        // Settings gear — understated, top-right. Long-press on the greeting still works,
+        // but first-timers would never find that. This makes Settings 1 tap away.
+        IconButton(
+            onClick = { showSettings = true },
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .systemBarsPadding()
+                .padding(end = 6.dp, top = 4.dp)
+                .size(40.dp)
+        ) {
+            Icon(
+                Icons.Outlined.Settings,
+                contentDescription = "Settings",
+                tint = Color.White.copy(alpha = 0.35f),
+                modifier = Modifier.size(20.dp)
+            )
+        }
+
         // App drawer overlay
         AnimatedVisibility(
             visible = showAppDrawer,
