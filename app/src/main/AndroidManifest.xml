@@ -8,7 +8,11 @@
     <uses-permission android:name="android.permission.SEND_SMS" />
     <uses-permission android:name="android.permission.READ_SMS" />
     <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.SET_ALARM" />
+    <!-- Required to launch AlarmClock.ACTION_SET_ALARM against Google's deskclock
+         (com.google.android.deskclock/HandleSetApiCalls). The similarly-named
+         "android.permission.SET_ALARM" in the system namespace is NOT what
+         that activity guards against — it's this deskclock-namespaced one. -->
+    <uses-permission android:name="com.android.alarm.permission.SET_ALARM" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES"
