@@ -14,6 +14,7 @@ import com.minima.os.capability.weather.WeatherCapability
 import com.minima.os.capability.alarm.AlarmCapability
 import com.minima.os.capability.contacts.ContactsCapability
 import com.minima.os.capability.convert.ConvertCapability
+import com.minima.os.core.bus.NotificationHub
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
@@ -51,6 +52,11 @@ object CapabilityProvidesModule {
         contacts: ContactsCapability,
         convert: ConvertCapability
     ): Map<String, @JvmSuppressWildcards CapabilityProvider> {
+        // Wire the live-notifications source. The capability doesn't depend on
+        // NotificationHub directly (it's a pull hook), so we plug it in here at
+        // graph-construction time. The hub is populated by the listener service.
+        notification.notificationSource = { NotificationHub.notifications.value }
+
         return mapOf(
             "calendar" to calendar,
             "notification" to notification,
