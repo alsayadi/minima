@@ -175,8 +175,11 @@ fun LauncherScreen(
                 }
 
                 // Notification surface — shows what the user would otherwise pull
-                // down the shade for, inline in the task feed.
-                com.minima.os.ui.notifications.NotificationStrip()
+                // down the shade for, inline in the task feed. Smart-reply chips
+                // are LLM-drafted on demand for replyable notifications.
+                com.minima.os.ui.notifications.NotificationStrip(
+                    suggestReplies = { sender, message -> viewModel.suggestReplies(sender, message) }
+                )
                 Spacer(modifier = Modifier.height(12.dp))
 
                 // Task feed

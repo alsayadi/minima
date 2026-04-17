@@ -224,6 +224,32 @@ class LauncherViewModel @Inject constructor(
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     /**
+     * Smart-reply chip suggestions for a quick-replyable notification.
+     * Returns 3 short reply candidates (or fewer if the model returned junk).
+     * Best-effort — on error we return an empty list and the UI falls back
+     * to "type a reply yourself."
+     */
+    suspend fun suggestReplies(sender: String, message: String): List<String> {
+        if (message.isBlank()) return emptyList()
+        return runCatching {
+            val prompt = buildString {
+                appendLine("Suggest 3 short, natural reply candidates for this incoming message.")
+                appendLine("Each reply must be on its own line, no numbering, no quotes, no prefixes.")
+                appendLine("Keep each reply under 6 words. Match a casual texting tone.")
+                appendLine()
+                appendLine("From: $sender")
+                appendLine("Message: $message")
+            }
+            val raw = cloudModelProvider.draft(prompt)
+            raw.lineSequence()
+                .map { it.trim().trimStart('-', '*', '·', '•', ' ', '\t').trim('"', '\'').trim() }
+                .filter { it.isNotEmpty() && it.length <= 60 }
+                .take(3)
+                .toList()
+        }.getOrDefault(emptyList())
+    }
+
+    /**
      * Direct app launch — bypasses the agent pipeline entirely. Clears the
      * command bar after launch so we don't strand a stale query.
      */

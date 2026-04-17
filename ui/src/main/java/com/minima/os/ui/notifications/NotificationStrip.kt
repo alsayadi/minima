@@ -66,6 +66,7 @@ import com.minima.os.ui.theme.MinimaColors
 fun NotificationStrip(
     modifier: Modifier = Modifier,
     maxItems: Int = 4,
+    suggestReplies: (suspend (sender: String, message: String) -> List<String>)? = null,
 ) {
     val notifications by NotificationHub.notifications.collectAsState()
 
@@ -97,7 +98,8 @@ fun NotificationStrip(
                     info = n,
                     onOpen = { NotificationHub.open(n.id) },
                     onDismiss = { NotificationHub.dismiss(n.id) },
-                    onReply = { text -> NotificationHub.reply(n.id, text) }
+                    onReply = { text -> NotificationHub.reply(n.id, text) },
+                    suggestReplies = suggestReplies
                 )
             } else {
                 NotificationGroupCard(group = group)
@@ -144,12 +146,24 @@ private fun NotificationCard(
     onOpen: () -> Unit,
     onDismiss: () -> Unit,
     onReply: (String) -> Unit,
+    suggestReplies: (suspend (sender: String, message: String) -> List<String>)? = null,
 ) {
     var replyMode by remember(info.id) { mutableStateOf(false) }
     var replyText by remember(info.id) { mutableStateOf("") }
     val focusRequester = remember(info.id) { FocusRequester() }
+    var smartChips by remember(info.id) { mutableStateOf<List<String>>(emptyList()) }
+    var loadingChips by remember(info.id) { mutableStateOf(false) }
     LaunchedEffect(replyMode) {
-        if (replyMode) runCatching { focusRequester.requestFocus() }
+        if (replyMode) {
+            runCatching { focusRequester.requestFocus() }
+            // Fetch smart-reply chips on first open. Cached per info.id so a
+            // close-then-reopen reuses them.
+            if (smartChips.isEmpty() && suggestReplies != null && info.text.isNotBlank()) {
+                loadingChips = true
+                smartChips = suggestReplies(info.title.ifBlank { info.appName }, info.text)
+                loadingChips = false
+            }
+        }
     }
 
     Column(
@@ -259,6 +273,45 @@ private fun NotificationCard(
         // Inline reply field — appears when the user taps the Reply pill.
         if (replyMode) {
             Spacer(modifier = Modifier.height(10.dp))
+            // Smart-reply chips: tap = instant send. Loading shows a faint
+            // placeholder row so the layout doesn't jump when chips arrive.
+            if (loadingChips) {
+                Text(
+                    text = "Suggesting replies…",
+                    fontSize = 11.sp,
+                    color = MinimaColors.onSurfaceVariant.copy(alpha = 0.55f),
+                    modifier = Modifier.padding(start = 4.dp, bottom = 6.dp),
+                )
+            } else if (smartChips.isNotEmpty()) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    smartChips.forEach { chip ->
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(14.dp))
+                                .background(MinimaColors.primary.copy(alpha = 0.18f))
+                                .clickable {
+                                    onReply(chip)
+                                    replyMode = false
+                                }
+                                .padding(horizontal = 12.dp, vertical = 6.dp),
+                        ) {
+                            Text(
+                                text = chip,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = MinimaColors.primary,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                    }
+                }
+            }
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
