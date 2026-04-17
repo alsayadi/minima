@@ -82,18 +82,33 @@ class MinimaNotificationListener : NotificationListenerService() {
 
         byKey[sbn.key] = sbn
 
+        val title = extras.getCharSequence("android.title")?.toString() ?: ""
+        val text = extras.getCharSequence("android.text")?.toString() ?: ""
+
+        // Stable per-conversation key. Prefer the system's group key when
+        // present (most messaging apps set it per-conversation). Fall back to
+        // package+title so single-conversation feeds (e.g. one chat thread)
+        // still collapse cleanly.
+        val groupKey: String? = sbn.groupKey?.takeIf { it.isNotBlank() }
+            ?: notification.group?.takeIf { it.isNotBlank() }?.let { "${sbn.packageName}:$it" }
+            ?: title.takeIf { it.isNotBlank() }?.let { "${sbn.packageName}:$it" }
+
+        val isGroupSummary = (notification.flags and Notification.FLAG_GROUP_SUMMARY) != 0
+
         val info = NotificationInfo(
             id = sbn.key,
             packageName = sbn.packageName,
             appName = extras.getString("android.title.app", sbn.packageName),
-            title = extras.getCharSequence("android.title")?.toString() ?: "",
-            text = extras.getCharSequence("android.text")?.toString() ?: "",
+            title = title,
+            text = text,
             category = categorize(notification.category, sbn.packageName),
             priority = mapPriority(notification.priority),
             timestamp = sbn.postTime,
             isOngoing = sbn.isOngoing,
             actions = notification.actions?.map { it.title.toString() } ?: emptyList(),
-            canReply = notification.findReplyAction() != null
+            canReply = notification.findReplyAction() != null,
+            groupKey = groupKey,
+            isGroupSummary = isGroupSummary
         )
 
         NotificationHub.upsert(info)

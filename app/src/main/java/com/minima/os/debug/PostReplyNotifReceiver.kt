@@ -24,7 +24,10 @@ class PostReplyNotifReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
         val title = intent.getStringExtra("title") ?: "Mom"
-        val text = intent.getStringExtra("text") ?: "hey — are we still on for dinner sunday?"
+        // count > 1 posts a group of N notifications under the same setGroup
+        // key so the strip's grouping logic can be exercised.
+        val count = intent.getIntExtra("count", 1).coerceIn(1, 10)
+        val baseText = intent.getStringExtra("text") ?: "hey — are we still on for dinner sunday?"
         val nm = context.getSystemService(NotificationManager::class.java) ?: return
 
         val channelId = "minima_debug_reply"
@@ -55,17 +58,36 @@ class PostReplyNotifReceiver : BroadcastReceiver() {
         val openMinima = Intent(context, com.minima.os.LauncherActivity::class.java)
         val openPi = PendingIntent.getActivity(context, 1, openMinima, PendingIntent.FLAG_IMMUTABLE)
 
-        val notif = Notification.Builder(context, channelId)
-            .setSmallIcon(android.R.drawable.sym_action_chat)
-            .setContentTitle(title)
-            .setContentText(text)
-            .setCategory(Notification.CATEGORY_MESSAGE)
-            .setContentIntent(openPi)
-            .addAction(replyAction)
-            .setAutoCancel(true)
-            .build()
+        val groupKey = "minima_debug_group:$title"
+        val sampleTexts = listOf(
+            baseText,
+            "also can you bring the wine?",
+            "ok ok don't forget to call me",
+            "wait — did you see my email?",
+            "love you",
+            "ping",
+            "hello?",
+            "k bye",
+            "one more thing",
+            "the cat says hi",
+        )
 
-        nm.notify(MinimaDebugIds.REPLY_TEST_NOTIFICATION_ID, notif)
+        repeat(count) { i ->
+            val text = sampleTexts[i % sampleTexts.size]
+            val notif = Notification.Builder(context, channelId)
+                .setSmallIcon(android.R.drawable.sym_action_chat)
+                .setContentTitle(title)
+                .setContentText(text)
+                .setCategory(Notification.CATEGORY_MESSAGE)
+                .setContentIntent(openPi)
+                .addAction(replyAction)
+                .setAutoCancel(true)
+                .setGroup(groupKey)
+                .setWhen(System.currentTimeMillis() - (count - i) * 1000L)
+                .setShowWhen(true)
+                .build()
+            nm.notify(MinimaDebugIds.REPLY_TEST_NOTIFICATION_ID + i, notif)
+        }
     }
 }
 

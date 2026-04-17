@@ -21,7 +21,21 @@ data class NotificationInfo(
      * these; the listener service performs the actual send via the source
      * app's PendingIntent.
      */
-    val canReply: Boolean = false
+    val canReply: Boolean = false,
+    /**
+     * Stable per-conversation key. Notifications sharing a groupKey are
+     * collapsed into one card in the strip (e.g. five messages from "Mom"
+     * become a single "Mom (5)" card). Falls back to a synthetic
+     * "<package>:<title>" so messengers that don't set group still collapse
+     * by sender. Null only if neither is available.
+     */
+    val groupKey: String? = null,
+    /**
+     * True for the synthetic "summary" notification that some apps post to
+     * represent a group. We hide these in the strip — our own grouping is
+     * the summary.
+     */
+    val isGroupSummary: Boolean = false
 )
 
 @Serializable

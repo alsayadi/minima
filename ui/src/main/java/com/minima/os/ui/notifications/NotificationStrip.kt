@@ -70,29 +70,72 @@ fun NotificationStrip(
     val notifications by NotificationHub.notifications.collectAsState()
 
     // Filter: drop ongoing (music players, etc.) — they're noise in a task surface.
-    // And drop anything with no title/text (often OS spam).
+    // Drop anything with no title/text (often OS spam). Drop group-summary
+    // synthetic notifications — our own grouping replaces them.
     val visible = notifications
         .asSequence()
         .filter { !it.isOngoing }
+        .filter { !it.isGroupSummary }
         .filter { it.title.isNotBlank() || it.text.isNotBlank() }
-        .take(maxItems)
         .toList()
 
     if (visible.isEmpty()) return
+
+    // Collapse by groupKey so 5 messages from "Mom" become one "Mom (5)"
+    // card. Order is preserved by latest member's timestamp. Items without
+    // a groupKey are kept individual.
+    val grouped: List<List<NotificationInfo>> = buildGroups(visible).take(maxItems)
 
     Column(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        visible.forEach { n ->
-            NotificationCard(
-                info = n,
-                onOpen = { NotificationHub.open(n.id) },
-                onDismiss = { NotificationHub.dismiss(n.id) },
-                onReply = { text -> NotificationHub.reply(n.id, text) }
-            )
+        grouped.forEach { group ->
+            if (group.size == 1) {
+                val n = group[0]
+                NotificationCard(
+                    info = n,
+                    onOpen = { NotificationHub.open(n.id) },
+                    onDismiss = { NotificationHub.dismiss(n.id) },
+                    onReply = { text -> NotificationHub.reply(n.id, text) }
+                )
+            } else {
+                NotificationGroupCard(group = group)
+            }
         }
     }
+}
+
+/**
+ * Collapse the flat list into groups keyed by [NotificationInfo.groupKey].
+ * Preserves the original order: a group sits where its newest member sits.
+ * Items with a null groupKey are each their own group.
+ */
+private fun buildGroups(input: List<NotificationInfo>): List<List<NotificationInfo>> {
+    val groups = LinkedHashMap<String, MutableList<NotificationInfo>>()
+    val singletons = mutableListOf<MutableList<NotificationInfo>>()
+    input.forEach { n ->
+        val key = n.groupKey
+        if (key == null) {
+            singletons.add(mutableListOf(n))
+        } else {
+            groups.getOrPut(key) { mutableListOf() }.add(n)
+        }
+    }
+    // Merge: keep input order by walking the original list and emitting each
+    // group on its first appearance.
+    val seen = mutableSetOf<String>()
+    val out = mutableListOf<List<NotificationInfo>>()
+    var singletonIdx = 0
+    input.forEach { n ->
+        val key = n.groupKey
+        if (key == null) {
+            out.add(singletons[singletonIdx]); singletonIdx++
+        } else if (seen.add(key)) {
+            out.add(groups.getValue(key))
+        }
+    }
+    return out
 }
 
 @Composable
@@ -284,4 +327,159 @@ private fun iconFor(category: NotificationCategory): ImageVector = when (categor
     NotificationCategory.SYSTEM -> Icons.Outlined.Settings
     NotificationCategory.NEWS -> Icons.Outlined.Campaign
     else -> Icons.Outlined.Notifications
+}
+
+/**
+ * Stacked card for a conversation: shows the latest message + a "+N" badge.
+ * Tap header to expand inline; expanded state lists each message with its own
+ * Reply/dismiss controls. Group dismiss cancels every member at once.
+ */
+@Composable
+private fun NotificationGroupCard(group: List<NotificationInfo>) {
+    val sorted = group.sortedByDescending { it.timestamp }
+    val head = sorted.first()
+    val rest = sorted.drop(1)
+    var expanded by remember(head.groupKey) { mutableStateOf(false) }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .background(MinimaColors.glass)
+            .border(1.dp, Color.White.copy(alpha = 0.05f), RoundedCornerShape(14.dp))
+            .padding(horizontal = 14.dp, vertical = 12.dp),
+    ) {
+        // Header row: same shape as a single card, but with a "+N" badge and
+        // a tap-to-expand affordance. Tapping the body of the head card when
+        // collapsed opens the latest one (mirrors shade behavior).
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { if (!expanded) expanded = true else NotificationHub.open(head.id) },
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            // Stacked-card glyph: category icon with a faint badge underneath
+            Box(
+                modifier = Modifier
+                    .size(32.dp)
+                    .clip(CircleShape)
+                    .background(MinimaColors.primary.copy(alpha = 0.14f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = iconFor(head.category),
+                    contentDescription = null,
+                    tint = MinimaColors.primary,
+                    modifier = Modifier.size(16.dp),
+                )
+            }
+            Spacer(modifier = Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = head.appName.ifBlank { head.packageName },
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = MinimaColors.onSurfaceVariant.copy(alpha = 0.75f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    // "+N" badge — visually identifies this is a group
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(MinimaColors.primary.copy(alpha = 0.20f))
+                            .padding(horizontal = 6.dp, vertical = 1.dp),
+                    ) {
+                        Text(
+                            text = "${group.size}",
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MinimaColors.primary,
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = head.title.ifBlank { head.text },
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MinimaColors.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                if (head.title.isNotBlank() && head.text.isNotBlank()) {
+                    Text(
+                        text = head.text,
+                        fontSize = 12.sp,
+                        color = MinimaColors.onSurfaceVariant,
+                        maxLines = if (expanded) 3 else 2,
+                        overflow = TextOverflow.Ellipsis,
+                        lineHeight = 16.sp,
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.width(8.dp))
+            // Dismiss-all — drops every member of the group from both the
+            // strip and the system shade.
+            Box(
+                modifier = Modifier
+                    .size(28.dp)
+                    .clip(CircleShape)
+                    .clickable {
+                        group.forEach { NotificationHub.dismiss(it.id) }
+                    },
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    Icons.Rounded.Close,
+                    contentDescription = "Dismiss all",
+                    tint = MinimaColors.onSurfaceVariant.copy(alpha = 0.45f),
+                    modifier = Modifier.size(14.dp),
+                )
+            }
+        }
+
+        // Expanded body — render each older sibling as a thin row with its
+        // own open/dismiss/reply affordances. We don't render Reply pills
+        // here for brevity; users can tap the row to open the source app.
+        if (expanded && rest.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(8.dp))
+            rest.forEach { sibling ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(10.dp))
+                        .clickable { NotificationHub.open(sibling.id) }
+                        .padding(start = 44.dp, end = 4.dp, top = 6.dp, bottom = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = sibling.text.ifBlank { sibling.title },
+                            fontSize = 13.sp,
+                            color = MinimaColors.onSurface.copy(alpha = 0.85f),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                    Box(
+                        modifier = Modifier
+                            .size(24.dp)
+                            .clip(CircleShape)
+                            .clickable { NotificationHub.dismiss(sibling.id) },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            Icons.Rounded.Close,
+                            contentDescription = "Dismiss",
+                            tint = MinimaColors.onSurfaceVariant.copy(alpha = 0.45f),
+                            modifier = Modifier.size(12.dp),
+                        )
+                    }
+                }
+            }
+        }
+    }
 }
