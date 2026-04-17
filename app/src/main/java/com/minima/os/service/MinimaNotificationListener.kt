@@ -1,6 +1,10 @@
 package com.minima.os.service
 
+import android.app.Notification
 import android.app.PendingIntent
+import android.app.RemoteInput
+import android.content.Intent
+import android.os.Bundle
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import android.util.Log
@@ -32,7 +36,27 @@ class MinimaNotificationListener : NotificationListenerService() {
             runCatching { pi.send() }
                 .onFailure { Log.w(TAG, "open($key) failed: ${it.message}") }
         }
+
+        override fun reply(key: String, text: String) {
+            val sbn = byKey[key] ?: return
+            val replyAction = sbn.notification?.findReplyAction() ?: run {
+                Log.w(TAG, "reply($key) — no RemoteInput action on this notification")
+                return
+            }
+            val remoteInput = replyAction.remoteInputs?.firstOrNull() ?: return
+            runCatching {
+                val fillIn = Intent()
+                val results = Bundle().apply { putCharSequence(remoteInput.resultKey, text) }
+                RemoteInput.addResultsToIntent(arrayOf(remoteInput), fillIn, results)
+                replyAction.actionIntent.send(this@MinimaNotificationListener, 0, fillIn)
+            }.onFailure { Log.w(TAG, "reply($key) failed: ${it.message}") }
+            byKey.remove(key)
+        }
     }
+
+    /** First action whose RemoteInput list is non-empty (canonical "reply" action). */
+    private fun Notification.findReplyAction(): Notification.Action? =
+        actions?.firstOrNull { it.remoteInputs?.isNotEmpty() == true }
 
     override fun onListenerConnected() {
         super.onListenerConnected()
@@ -68,7 +92,8 @@ class MinimaNotificationListener : NotificationListenerService() {
             priority = mapPriority(notification.priority),
             timestamp = sbn.postTime,
             isOngoing = sbn.isOngoing,
-            actions = notification.actions?.map { it.title.toString() } ?: emptyList()
+            actions = notification.actions?.map { it.title.toString() } ?: emptyList(),
+            canReply = notification.findReplyAction() != null
         )
 
         NotificationHub.upsert(info)

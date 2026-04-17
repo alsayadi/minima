@@ -109,5 +109,20 @@
             </intent-filter>
         </service>
 
+        <!-- Debug-only: lets us post a notification with a RemoteInput action
+             from adb so the quick-reply UI can be exercised end-to-end without
+             installing a real messenger app. Manifest entries are harmless on
+             release builds (the receivers are no-ops if never broadcast to). -->
+        <receiver
+            android:name=".debug.PostReplyNotifReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.minima.os.debug.POST_REPLY_NOTIF" />
+            </intent-filter>
+        </receiver>
+        <receiver
+            android:name=".debug.ReplyConsumerReceiver"
+            android:exported="false" />
+
     </application>
 </manifest>

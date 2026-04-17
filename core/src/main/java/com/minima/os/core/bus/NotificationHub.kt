@@ -32,6 +32,8 @@ object NotificationHub {
     interface Binder {
         fun dismiss(key: String)
         fun open(key: String)
+        /** Quick-reply via the source notification's RemoteInput action. */
+        fun reply(key: String, text: String)
     }
 
     fun bind(b: Binder) { binder = b }
@@ -61,5 +63,16 @@ object NotificationHub {
     /** Called by UI when the user taps the notification body to open its source. */
     fun open(key: String) {
         binder?.open(key)
+    }
+
+    /**
+     * Called by UI to send a quick reply to the source notification. The
+     * dispatch happens through the source app's PendingIntent — Minima never
+     * holds the message after handing it off. Optimistically removes the card
+     * since most messaging apps cancel the notification on reply.
+     */
+    fun reply(key: String, text: String) {
+        binder?.reply(key, text)
+        remove(key)
     }
 }

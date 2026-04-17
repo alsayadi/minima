@@ -13,7 +13,15 @@ data class NotificationInfo(
     val priority: NotificationPriority = NotificationPriority.DEFAULT,
     val timestamp: Long = System.currentTimeMillis(),
     val isOngoing: Boolean = false,
-    val actions: List<String> = emptyList()
+    val actions: List<String> = emptyList(),
+    /**
+     * True if at least one of the notification's actions exposes a RemoteInput
+     * (the standard "type a reply without opening the app" mechanism, e.g.
+     * Messages, WhatsApp, Telegram). The UI shows an inline reply field for
+     * these; the listener service performs the actual send via the source
+     * app's PendingIntent.
+     */
+    val canReply: Boolean = false
 )
 
 @Serializable
