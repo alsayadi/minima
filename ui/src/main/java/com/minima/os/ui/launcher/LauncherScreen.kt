@@ -193,6 +193,19 @@ fun LauncherScreen(
                 }
             }
 
+            // Inline app suggestions — appears as the user types in the command
+            // bar. Tap launches directly, bypassing the agent pipeline.
+            val appSuggestions by viewModel.appSuggestions.collectAsState()
+            androidx.compose.animation.AnimatedVisibility(visible = appSuggestions.isNotEmpty()) {
+                Column {
+                    com.minima.os.ui.commandbar.AppSuggestionRow(
+                        apps = appSuggestions,
+                        onLaunch = { pkg -> viewModel.launchAppDirect(pkg) }
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+            }
+
             // Command bar (full width, pinned at bottom)
             val haptics = androidx.compose.ui.platform.LocalHapticFeedback.current
             val voiceRms by viewModel.voiceRms.collectAsState()

@@ -27,6 +27,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -193,6 +194,49 @@ class LauncherViewModel @Inject constructor(
 
     fun onCommandTextChanged(text: String) {
         _uiState.value = _uiState.value.copy(commandText = text)
+    }
+
+    /**
+     * Inline app suggestions for the command bar — derived from typed text +
+     * the installed-apps list. Skips the LLM entirely so launching is instant.
+     *
+     * Ranking: starts-with > word-boundary-startswith > substring. Tie-break
+     * on shorter labels (more specific match).
+     */
+    val appSuggestions: StateFlow<List<AppInfo>> =
+        kotlinx.coroutines.flow.combine(
+            _uiState.map { it.commandText },
+            _uiState.map { it.installedApps }
+        ) { text, apps ->
+            val q = text.trim().lowercase()
+            if (q.length < 2) return@combine emptyList()
+            val scored = apps.mapNotNull { app ->
+                val label = app.label.lowercase()
+                val score = when {
+                    label.startsWith(q) -> 0
+                    label.split(' ', '-', '_', '.', '&').any { it.startsWith(q) } -> 1
+                    label.contains(q) -> 2
+                    else -> return@mapNotNull null
+                }
+                Triple(app, score, label.length)
+            }
+            scored.sortedWith(compareBy({ it.second }, { it.third })).take(6).map { it.first }
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    /**
+     * Direct app launch — bypasses the agent pipeline entirely. Clears the
+     * command bar after launch so we don't strand a stale query.
+     */
+    fun launchAppDirect(packageName: String) {
+        viewModelScope.launch {
+            runCatching {
+                val intent = context.packageManager.getLaunchIntentForPackage(packageName)
+                    ?: return@runCatching
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                context.startActivity(intent)
+                _uiState.value = _uiState.value.copy(commandText = "")
+            }
+        }
     }
 
     // Voice input support
